@@ -19,10 +19,12 @@ class CompanyRepository:
         return result.scalars().first()
 
     async def get_by_user_id(self, user_id: uuid.UUID) -> Optional[Company]:
+        from app.models.user import User
         result = await self.db.execute(
             select(Company)
+            .join(User, User.company_id == Company.id)
             .options(selectinload(Company.addresses))
-            .where(Company.user_id == user_id, Company.is_deleted == False)
+            .where(User.id == user_id, Company.is_deleted == False)
         )
         return result.scalars().first()
 

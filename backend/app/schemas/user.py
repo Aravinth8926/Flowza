@@ -17,6 +17,7 @@ class UserBase(BaseModel):
     email: str
     phone: str
     role_id: uuid.UUID
+    company_id: Optional[uuid.UUID] = None
     profile_picture_url: Optional[str] = None
     is_active: bool
     last_login_at: Optional[datetime] = None

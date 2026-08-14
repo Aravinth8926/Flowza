@@ -1,5 +1,5 @@
 import uuid
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_db
@@ -40,3 +40,22 @@ async def get_current_active_user(
     if not current_user.is_active or current_user.is_deleted:
         raise CredentialsException(detail="Account is inactive or deleted")
     return current_user
+
+def check_role(allowed_roles: list[str]):
+    """
+    Reusable dependency to verify that the current active user has one of the allowed roles.
+    """
+    async def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
+        role_name = current_user.role.name if current_user.role else None
+        if not role_name or role_name.lower() not in [r.lower() for r in allowed_roles]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to access this resource"
+            )
+        return current_user
+    return role_checker
+
+# Pre-defined role dependencies
+verify_vendor = check_role(["vendor"])
+verify_supplier = check_role(["supplier"])
+verify_admin = check_role(["admin"])

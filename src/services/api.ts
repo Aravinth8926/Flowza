@@ -9,10 +9,11 @@ const api = axios.create({
   withCredentials: true, // Allow cookies for refresh tokens
 });
 
-// Request Interceptor
+// Request Interceptor — attach real JWT from store or localStorage
 api.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
+    const token =
+      useAuthStore.getState().token || localStorage.getItem('access_token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }

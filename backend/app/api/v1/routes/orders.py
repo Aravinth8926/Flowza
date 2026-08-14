@@ -4,11 +4,11 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_, desc, asc
+from sqlalchemy import select, func, or_, desc, asc, String
 from sqlalchemy.orm import selectinload
 
 from app.database.session import get_db
-from app.api.v1.deps import get_current_active_user
+from app.api.v1.deps import get_current_active_user, verify_vendor, verify_supplier
 from app.models.user import User
 from app.models.company import Company
 from app.models.address import Address
@@ -120,7 +120,7 @@ def format_order_response(o: OrderRequest, vendor_user: Optional[User], supplier
 @router.post("")
 async def create_order(
     req: OrderCreateRequest,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(verify_vendor),
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -130,7 +130,7 @@ async def create_order(
 
     # Fetch supplier user
     sup_res = await db.execute(
-        select(User).options(selectinload(User.company).selectinload(Company.address)).where(User.id == sup_uuid)
+        select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.id == sup_uuid)
     )
     supplier = sup_res.scalars().first()
     if not supplier:
@@ -138,7 +138,7 @@ async def create_order(
 
     # Vendor company
     v_comp_res = await db.execute(
-        select(Company).options(selectinload(Company.address)).where(Company.user_id == current_user.id)
+        select(Company).options(selectinload(Company.addresses)).where(Company.id == current_user.company_id)
     )
     vendor_company = v_comp_res.scalars().first()
 
@@ -231,7 +231,7 @@ async def get_incoming_orders(
     sort_by: Optional[str] = Query("newest"),  # newest, oldest, priority, value
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(verify_supplier),
     db: AsyncSession = Depends(get_db),
 ):
     stmt = (
@@ -274,7 +274,7 @@ async def get_incoming_orders(
     for o in orders:
         # Fetch vendor user info
         v_res = await db.execute(
-            select(User).options(selectinload(User.company).selectinload(Company.address)).where(User.id == o.vendor_id)
+            select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.id == o.vendor_id)
         )
         vendor_user = v_res.scalars().first()
         formatted.append(format_order_response(o, vendor_user, current_user))
@@ -300,7 +300,7 @@ async def get_my_sent_orders(
     search: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(verify_vendor),
     db: AsyncSession = Depends(get_db),
 ):
     stmt = (
@@ -334,7 +334,7 @@ async def get_my_sent_orders(
     formatted = []
     for o in orders:
         s_res = await db.execute(
-            select(User).options(selectinload(User.company).selectinload(Company.address)).where(User.id == o.supplier_id)
+            select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.id == o.supplier_id)
         )
         supplier_user = s_res.scalars().first()
         formatted.append(format_order_response(o, current_user, supplier_user))
@@ -403,13 +403,23 @@ async def get_order_by_id(
     try:
         ord_uuid = uuid.UUID(order_id)
     except ValueError:
-        # Try raw match or substring
         ord_uuid = None
 
     if ord_uuid:
-        stmt = select(OrderRequest).options(selectinload(OrderRequest.items)).where(OrderRequest.id == ord_uuid)
+        stmt = (
+            select(OrderRequest)
+            .options(selectinload(OrderRequest.items))
+            .where(OrderRequest.id == ord_uuid, OrderRequest.is_deleted == False)
+        )
     else:
-        stmt = select(OrderRequest).options(selectinload(OrderRequest.items)).where(OrderRequest.id.cast(String).ilike(f"%{order_id}%"))
+        stmt = (
+            select(OrderRequest)
+            .options(selectinload(OrderRequest.items))
+            .where(
+                OrderRequest.id.cast(String).ilike(f"%{order_id}%"),
+                OrderRequest.is_deleted == False,
+            )
+        )
 
     res = await db.execute(stmt)
     order = res.scalars().first()
@@ -417,14 +427,20 @@ async def get_order_by_id(
     if not order:
         raise HTTPException(status_code=404, detail="Order request not found")
 
+    # ── Authorization guard ─────────────────────────────────────────────────
+    # Only the vendor who placed the order or the supplier it was sent to may view it.
+    if current_user.id not in (order.vendor_id, order.supplier_id):
+        raise HTTPException(status_code=403, detail="You do not have permission to view this order")
+    # ────────────────────────────────────────────────────────────────────────
+
     # Fetch vendor & supplier
     v_res = await db.execute(
-        select(User).options(selectinload(User.company).selectinload(Company.address)).where(User.id == order.vendor_id)
+        select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.id == order.vendor_id)
     )
     vendor_user = v_res.scalars().first()
 
     s_res = await db.execute(
-        select(User).options(selectinload(User.company).selectinload(Company.address)).where(User.id == order.supplier_id)
+        select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.id == order.supplier_id)
     )
     supplier_user = s_res.scalars().first()
 
@@ -438,20 +454,40 @@ async def get_order_by_id(
 async def respond_to_order(
     order_id: str,
     req: OrderRespondRequest,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(verify_supplier),
     db: AsyncSession = Depends(get_db),
 ):
     try:
         ord_uuid = uuid.UUID(order_id)
-        stmt = select(OrderRequest).options(selectinload(OrderRequest.items)).where(OrderRequest.id == ord_uuid)
+        stmt = (
+            select(OrderRequest)
+            .options(selectinload(OrderRequest.items))
+            .where(OrderRequest.id == ord_uuid, OrderRequest.is_deleted == False)
+        )
     except ValueError:
-        stmt = select(OrderRequest).options(selectinload(OrderRequest.items)).where(OrderRequest.id.cast(String).ilike(f"%{order_id}%"))
+        stmt = (
+            select(OrderRequest)
+            .options(selectinload(OrderRequest.items))
+            .where(
+                OrderRequest.id.cast(String).ilike(f"%{order_id}%"),
+                OrderRequest.is_deleted == False,
+            )
+        )
 
     res = await db.execute(stmt)
     order = res.scalars().first()
 
     if not order:
         raise HTTPException(status_code=404, detail="Order request not found")
+
+    # ── Authorization guard ─────────────────────────────────────────────────
+    # Only the designated supplier for this order may accept/reject it.
+    if current_user.id != order.supplier_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Only the designated supplier may respond to this order",
+        )
+    # ────────────────────────────────────────────────────────────────────────
 
     action_lower = req.action.lower()
     new_status = "accepted" if action_lower in ["accept", "accepted"] else "rejected"
@@ -466,7 +502,7 @@ async def respond_to_order(
 
     # Get supplier company name
     s_comp_res = await db.execute(
-        select(Company).where(Company.user_id == current_user.id)
+        select(Company).where(Company.id == current_user.company_id)
     )
     sup_comp = s_comp_res.scalars().first()
     supplier_cname = sup_comp.company_name if sup_comp else current_user.full_name
@@ -506,15 +542,42 @@ async def update_order_status(
 ):
     try:
         ord_uuid = uuid.UUID(order_id)
-        stmt = select(OrderRequest).options(selectinload(OrderRequest.items)).where(OrderRequest.id == ord_uuid)
+        stmt = (
+            select(OrderRequest)
+            .options(selectinload(OrderRequest.items))
+            .where(OrderRequest.id == ord_uuid, OrderRequest.is_deleted == False)
+        )
     except ValueError:
-        stmt = select(OrderRequest).options(selectinload(OrderRequest.items)).where(OrderRequest.id.cast(String).ilike(f"%{order_id}%"))
+        stmt = (
+            select(OrderRequest)
+            .options(selectinload(OrderRequest.items))
+            .where(
+                OrderRequest.id.cast(String).ilike(f"%{order_id}%"),
+                OrderRequest.is_deleted == False,
+            )
+        )
 
     res = await db.execute(stmt)
     order = res.scalars().first()
 
     if not order:
         raise HTTPException(status_code=404, detail="Order request not found")
+
+    # ── Authorization guard ─────────────────────────────────────────────────
+    # Only the vendor or the supplier assigned to this order may update its status.
+    if current_user.id not in (order.vendor_id, order.supplier_id):
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to update this order's status",
+        )
+    # ────────────────────────────────────────────────────────────────────────
+
+    allowed_statuses = {"in_progress", "completed", "cancelled"}
+    if req.status.lower() not in allowed_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status. Allowed values: {', '.join(allowed_statuses)}",
+        )
 
     order.status = req.status.lower()
     await db.commit()

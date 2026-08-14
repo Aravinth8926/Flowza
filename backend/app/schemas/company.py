@@ -5,7 +5,6 @@ from datetime import datetime
 
 class CompanyBase(BaseModel):
     id: uuid.UUID
-    user_id: uuid.UUID
     company_name: str
     business_type: str
     gst_number: Optional[str] = None

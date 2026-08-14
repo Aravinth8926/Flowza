@@ -6,7 +6,7 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 
 from app.database.session import get_db
-from app.api.v1.deps import get_current_active_user
+from app.api.v1.deps import get_current_active_user, verify_vendor
 from app.models.user import User
 from app.models.role import Role
 from app.models.company import Company
@@ -23,17 +23,17 @@ async def list_suppliers(
     business_type: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(verify_vendor),
     db: AsyncSession = Depends(get_db),
 ):
     # Query users with supplier role
     stmt = (
         select(User)
         .join(Role, User.role_id == Role.id)
-        .outerjoin(Company, User.id == Company.user_id)
+        .outerjoin(Company, User.company_id == Company.id)
         .outerjoin(Address, Company.id == Address.company_id)
         .where(Role.name == "supplier", User.is_active == True)
-        .options(selectinload(User.company).selectinload(Company.address))
+        .options(selectinload(User.company).selectinload(Company.addresses))
     )
 
     if search:
@@ -114,12 +114,12 @@ async def list_suppliers(
 @router.get("/{supplier_id}")
 async def get_supplier_details(
     supplier_id: str,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(verify_vendor),
     db: AsyncSession = Depends(get_db),
 ):
     stmt = (
         select(User)
-        .options(selectinload(User.company).selectinload(Company.address))
+        .options(selectinload(User.company).selectinload(Company.addresses))
         .where(User.id == supplier_id)
     )
     res = await db.execute(stmt)

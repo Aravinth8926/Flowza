@@ -65,15 +65,13 @@ export const NewOrderRequest: React.FC = () => {
 
   // Step 3: Add Items
   const [items, setItems] = useState<OrderItemRow[]>([
-    { id: '1', product_name: 'Tomatoes', quantity: 50, unit: 'kg', estimated_price: 40 },
-    { id: '2', product_name: 'Onions', quantity: 30, unit: 'kg', estimated_price: 35 },
-    { id: '3', product_name: 'Potatoes', quantity: 25, unit: 'kg', estimated_price: 30 },
+    { id: '1', product_name: '', quantity: 1, unit: 'kg', estimated_price: '' },
   ]);
 
   // Fetch company and address on load
   useEffect(() => {
-    fetchCompany().catch(() => {});
-    fetchAddress().catch(() => {});
+    fetchCompany().catch(() => { });
+    fetchAddress().catch(() => { });
   }, [fetchCompany, fetchAddress]);
 
   // Pre-fill delivery address when address loads
@@ -86,9 +84,10 @@ export const NewOrderRequest: React.FC = () => {
   }, [address, deliveryAddress]);
 
   // Fetch Suppliers Query with TanStack Query
-  const { data: suppliers = [], isLoading: isLoadingSuppliers } = useQuery({
+  const { data: suppliers = [], isLoading: isLoadingSuppliers, isError: isSuppliersError } = useQuery({
     queryKey: ['suppliers'],
     queryFn: () => supplierService.getSuppliers(),
+    retry: 1,
   });
 
   // Filtered suppliers
@@ -102,12 +101,6 @@ export const NewOrderRequest: React.FC = () => {
     );
   });
 
-  // Auto-select first supplier if none selected
-  useEffect(() => {
-    if (!selectedSupplier && suppliers.length > 0) {
-      setSelectedSupplier(suppliers[0]);
-    }
-  }, [suppliers, selectedSupplier]);
 
   // Calculate totals
   const totalItemsCount = items.filter((i) => i.product_name.trim() !== '').length;
@@ -261,22 +254,20 @@ export const NewOrderRequest: React.FC = () => {
               return (
                 <div
                   key={step.num}
-                  className={`flex flex-col sm:flex-row items-center gap-2 p-2 rounded-lg transition-all ${
-                    isActive
+                  className={`flex flex-col sm:flex-row items-center gap-2 p-2 rounded-lg transition-all ${isActive
                       ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/80 dark:border-blue-800/50'
                       : isCompleted
-                      ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
-                      : 'text-slate-400 dark:text-slate-600 font-medium'
-                  }`}
+                        ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
+                        : 'text-slate-400 dark:text-slate-600 font-medium'
+                    }`}
                 >
                   <div
-                    className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                      isActive
+                    className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isActive
                         ? 'bg-blue-600 text-white shadow-xs'
                         : isCompleted
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-100 dark:bg-[#151d2e] text-slate-500'
-                    }`}
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-slate-100 dark:bg-[#151d2e] text-slate-500'
+                      }`}
                   >
                     {isCompleted ? <CheckCircle2 size={14} /> : step.num}
                   </div>
@@ -313,6 +304,11 @@ export const NewOrderRequest: React.FC = () => {
             <CardContent className="pt-5 space-y-3">
               {isLoadingSuppliers ? (
                 <div className="text-center py-8 text-xs text-slate-400">Loading verified suppliers...</div>
+              ) : isSuppliersError ? (
+                <div className="text-center py-8 space-y-2">
+                  <p className="text-sm font-bold text-red-600 dark:text-red-400">Could not load suppliers</p>
+                  <p className="text-xs text-slate-400">The backend server may be offline. Please ensure FastAPI is running on port 8000 and try again.</p>
+                </div>
               ) : filteredSuppliers.length === 0 ? (
                 <div className="text-center py-8 text-xs text-slate-400">
                   No suppliers found matching "{supplierSearch}".
@@ -325,19 +321,17 @@ export const NewOrderRequest: React.FC = () => {
                       <div
                         key={sup.id}
                         onClick={() => setSelectedSupplier(sup)}
-                        className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                          isSelected
+                        className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isSelected
                             ? 'border-blue-500 bg-blue-50/40 dark:bg-blue-950/20 ring-2 ring-blue-500/20 shadow-xs'
                             : 'border-slate-200 dark:border-[#1e293b] hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-[#0c111d]'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start gap-3.5">
                           <div
-                            className={`h-11 w-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 shadow-xs ${
-                              isSelected
+                            className={`h-11 w-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 shadow-xs ${isSelected
                                 ? 'bg-blue-600 text-white'
                                 : 'bg-slate-100 dark:bg-[#151d2e] text-slate-700 dark:text-slate-300'
-                            }`}
+                              }`}
                           >
                             {sup.company_name?.slice(0, 2).toUpperCase() || 'SP'}
                           </div>
@@ -483,22 +477,20 @@ export const NewOrderRequest: React.FC = () => {
                           key={p.id}
                           type="button"
                           onClick={() => setPriority(p.id as any)}
-                          className={`p-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                            isSelected
+                          className={`p-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${isSelected
                               ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
                               : 'bg-slate-50 dark:bg-[#151d2e] hover:bg-slate-100 border-slate-200 dark:border-[#1e293b] text-slate-700 dark:text-slate-300'
-                          }`}
+                            }`}
                         >
                           <span
-                            className={`h-2 w-2 rounded-full ${
-                              p.id === 'urgent'
+                            className={`h-2 w-2 rounded-full ${p.id === 'urgent'
                                 ? 'bg-red-400'
                                 : p.id === 'high'
-                                ? 'bg-orange-400'
-                                : p.id === 'medium'
-                                ? 'bg-blue-400'
-                                : 'bg-slate-400'
-                            }`}
+                                  ? 'bg-orange-400'
+                                  : p.id === 'medium'
+                                    ? 'bg-blue-400'
+                                    : 'bg-slate-400'
+                              }`}
                           />
                           {p.label}
                         </button>
@@ -760,10 +752,10 @@ export const NewOrderRequest: React.FC = () => {
                         priority === 'urgent'
                           ? 'destructive'
                           : priority === 'high'
-                          ? 'accent'
-                          : priority === 'medium'
-                          ? 'primary'
-                          : 'secondary'
+                            ? 'accent'
+                            : priority === 'medium'
+                              ? 'primary'
+                              : 'secondary'
                       }
                       className="text-xxs mt-0.5 uppercase"
                     >

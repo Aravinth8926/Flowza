@@ -27,21 +27,8 @@ class AuthService:
         if not role:
             raise FlowzaException(status_code=400, detail="Invalid role specified")
 
-        # Create User
-        hashed_password = get_password_hash(req.password)
-        user_data = {
-            "full_name": req.full_name,
-            "email": req.email.lower(),
-            "hashed_password": hashed_password,
-            "phone": req.phone,
-            "role_id": role.id,
-            "is_active": True
-        }
-        user = await self.user_repo.create(user_data)
-        
         # Create Company
         company_data = {
-            "user_id": user.id,
             "company_name": req.company_name,
             "business_type": req.business_type,
             "gst_number": req.gst_number or None,
@@ -60,10 +47,23 @@ class AuthService:
         }
         address = await self.company_repo.create_address(address_data)
 
+        # Create User
+        hashed_password = get_password_hash(req.password)
+        user_data = {
+            "full_name": req.full_name,
+            "email": req.email.lower(),
+            "hashed_password": hashed_password,
+            "phone": req.phone,
+            "role_id": role.id,
+            "company_id": company.id,
+            "is_active": True
+        }
+        user = await self.user_repo.create(user_data)
+
         await self.db.commit()
 
         # Generate access and refresh tokens
-        access_token = create_access_token(user.id)
+        access_token = create_access_token(user.id, role=role.name)
         refresh_token = create_refresh_token(user.id)
 
         # Reload eagerly to avoid missing greenlet errors in async SQLAlchemy
@@ -96,7 +96,7 @@ class AuthService:
         # Reload eagerly to avoid missing greenlet errors in async SQLAlchemy
         reloaded_user = await self.user_repo.get_by_id(user.id)
 
-        access_token = create_access_token(reloaded_user.id)
+        access_token = create_access_token(reloaded_user.id, role=reloaded_user.role.name if reloaded_user.role else None)
         refresh_token = create_refresh_token(reloaded_user.id)
 
         company_address = None
@@ -126,7 +126,7 @@ class AuthService:
         if not user:
             raise CredentialsException(detail="User associated with token not found")
 
-        access_token = create_access_token(user.id)
+        access_token = create_access_token(user.id, role=user.role.name if user.role else None)
         new_refresh_token = create_refresh_token(user.id)
 
         return {

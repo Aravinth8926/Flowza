@@ -21,134 +21,122 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   isAuthenticated: false,
   isLoading: false,
+
   login: async (credentials) => {
     set({ isLoading: true });
     try {
       const res = await authService.login(credentials);
-      set({
-        user: res.data.user,
-        token: res.data.access_token,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      const { access_token, refresh_token, user } = res.data;
+
       localStorage.setItem('flowza_logged_in', 'true');
-      localStorage.setItem('flowza_current_user', JSON.stringify(res.data.user));
-      if (res.data.refresh_token) {
-        localStorage.setItem('flowza_refresh_token', res.data.refresh_token);
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('flowza_current_user', JSON.stringify(user));
+      if (refresh_token) {
+        localStorage.setItem('flowza_refresh_token', refresh_token);
       }
+
+      set({ user, token: access_token, isAuthenticated: true, isLoading: false });
     } catch (err) {
       set({ isLoading: false });
       throw err;
     }
   },
+
   register: async (data) => {
     set({ isLoading: true });
     try {
       const res = await authService.register(data);
-      set({
-        user: res.data.user,
-        token: res.data.access_token,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      const { access_token, refresh_token, user } = res.data;
+
       localStorage.setItem('flowza_logged_in', 'true');
-      localStorage.setItem('flowza_current_user', JSON.stringify(res.data.user));
-      if (res.data.refresh_token) {
-        localStorage.setItem('flowza_refresh_token', res.data.refresh_token);
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('flowza_current_user', JSON.stringify(user));
+      if (refresh_token) {
+        localStorage.setItem('flowza_refresh_token', refresh_token);
       }
+
+      set({ user, token: access_token, isAuthenticated: true, isLoading: false });
     } catch (err) {
       set({ isLoading: false });
       throw err;
     }
   },
+
   logout: async () => {
     set({ isLoading: true });
     try {
-      await authService.logout().catch(() => {});
+      await authService.logout();
     } finally {
       localStorage.removeItem('flowza_logged_in');
+      localStorage.removeItem('access_token');
       localStorage.removeItem('flowza_refresh_token');
       localStorage.removeItem('flowza_current_user');
-      set({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     }
   },
+
   refreshToken: async () => {
     const rf = localStorage.getItem('flowza_refresh_token');
     if (!rf) {
-      const storedUserRaw = localStorage.getItem('flowza_current_user');
-      if (storedUserRaw) {
-        try {
-          const user = JSON.parse(storedUserRaw);
-          set({ token: 'mock-session-token', isAuthenticated: true, user });
-          return;
-        } catch (e) {}
-      }
-      set({ token: null, isAuthenticated: false, user: null });
+      // No refresh token — clear everything and force re-login
+      localStorage.removeItem('flowza_logged_in');
+      localStorage.removeItem('flowza_current_user');
+      set({ user: null, token: null, isAuthenticated: false });
       return;
     }
     try {
       const res = await authService.refreshToken(rf);
-      set({
-        token: res.data.access_token,
-        isAuthenticated: true,
-      });
-      if (res.data.refresh_token) {
-        localStorage.setItem('flowza_refresh_token', res.data.refresh_token);
+      const { access_token, refresh_token } = res.data;
+
+      localStorage.setItem('access_token', access_token);
+      if (refresh_token) {
+        localStorage.setItem('flowza_refresh_token', refresh_token);
       }
-    } catch (err) {
-      const storedUserRaw = localStorage.getItem('flowza_current_user');
-      if (storedUserRaw) {
-        try {
-          const user = JSON.parse(storedUserRaw);
-          set({ token: 'mock-session-token', isAuthenticated: true, user });
-          return;
-        } catch (e) {}
-      }
+      set({ token: access_token, isAuthenticated: true });
+    } catch {
+      // Refresh token is invalid or expired — force re-login
       localStorage.removeItem('flowza_logged_in');
+      localStorage.removeItem('access_token');
       localStorage.removeItem('flowza_refresh_token');
       localStorage.removeItem('flowza_current_user');
-      set({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-      });
-      throw err;
+      set({ user: null, token: null, isAuthenticated: false });
     }
   },
+
   setUser: (user) => {
     set({ user });
-    if (user) {
-      localStorage.setItem('flowza_current_user', JSON.stringify(user));
-    }
+    localStorage.setItem('flowza_current_user', JSON.stringify(user));
   },
+
   setToken: (token) => set({ token, isAuthenticated: !!token }),
+
   initializeAuth: async () => {
     const loggedIn = localStorage.getItem('flowza_logged_in') === 'true';
     if (!loggedIn) return;
 
+    set({ isLoading: true });
+
+    // Restore user from localStorage immediately for fast UI render
     const storedUserRaw = localStorage.getItem('flowza_current_user');
-    let storedUser: User | null = null;
-    if (storedUserRaw) {
+    const storedToken = localStorage.getItem('access_token');
+    if (storedUserRaw && storedToken) {
       try {
-        storedUser = JSON.parse(storedUserRaw);
-        set({ user: storedUser, isAuthenticated: true, token: 'mock-session-token' });
-      } catch (e) {}
+        const user = JSON.parse(storedUserRaw);
+        set({ user, token: storedToken, isAuthenticated: true });
+      } catch {
+        // Corrupt local storage — reset
+        set({ isLoading: false });
+        return;
+      }
     }
 
-    set({ isLoading: true });
+    // Validate session with the backend via refresh token rotation
     try {
       await get().refreshToken();
       const { useUserStore } = await import('./user');
-      await useUserStore.getState().fetchProfile().catch(() => {});
-    } catch (e) {
-      if (!get().user && storedUser) {
-        set({ user: storedUser, isAuthenticated: true, token: 'mock-session-token' });
-      }
+      await useUserStore.getState().fetchProfile().catch(() => { });
+    } catch {
+      // refreshToken already clears state internally on failure
     } finally {
       set({ isLoading: false });
     }

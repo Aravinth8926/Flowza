@@ -17,10 +17,11 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     phone: Mapped[str] = mapped_column(String(20), nullable=False)
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roles.id"), nullable=False)
+    company_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("companies.id"), nullable=True)
     profile_picture_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     role: Mapped["Role"] = relationship("Role", back_populates="users")
-    company: Mapped[Optional["Company"]] = relationship("Company", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    company: Mapped[Optional["Company"]] = relationship("Company", back_populates="users")

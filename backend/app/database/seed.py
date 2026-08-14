@@ -41,20 +41,8 @@ async def seed_data():
         admin = result.scalars().first()
         if not admin:
             print("[SEED] Creating demo admin user...")
-            hashed_pass = get_password_hash("AdminPassword123!")
-            admin = User(
-                full_name="Flowza Admin",
-                email=admin_email,
-                hashed_password=hashed_pass,
-                phone="9999999999",
-                role_id=roles_dict["admin"].id,
-                is_active=True
-            )
-            db.add(admin)
-            await db.flush()
-
+            
             company = Company(
-                user_id=admin.id,
                 company_name="Flowza Platform Inc.",
                 business_type="Platform Admin",
                 description="Core administration company for Flowza B2B services."
@@ -71,6 +59,19 @@ async def seed_data():
                 address_type="billing"
             )
             db.add(address)
+            await db.flush()
+
+            hashed_pass = get_password_hash("AdminPassword123!")
+            admin = User(
+                full_name="Flowza Admin",
+                email=admin_email,
+                hashed_password=hashed_pass,
+                phone="9999999999",
+                role_id=roles_dict["admin"].id,
+                company_id=company.id,
+                is_active=True
+            )
+            db.add(admin)
             await db.flush()
 
         # Seed Suppliers
@@ -119,20 +120,8 @@ async def seed_data():
             s_user = res.scalars().first()
             if not s_user:
                 print(f"[SEED] Creating supplier: {sdata['company_name']} ({sdata['email']})...")
-                hashed_pass = get_password_hash("Password123!")
-                s_user = User(
-                    full_name=sdata["full_name"],
-                    email=sdata["email"],
-                    hashed_password=hashed_pass,
-                    phone=sdata["phone"],
-                    role_id=roles_dict["supplier"].id,
-                    is_active=True
-                )
-                db.add(s_user)
-                await db.flush()
-
+                
                 s_comp = Company(
-                    user_id=s_user.id,
                     company_name=sdata["company_name"],
                     business_type=sdata["business_type"],
                     description=sdata["description"],
@@ -151,6 +140,19 @@ async def seed_data():
                 )
                 db.add(s_addr)
                 await db.flush()
+
+                hashed_pass = get_password_hash("Password123!")
+                s_user = User(
+                    full_name=sdata["full_name"],
+                    email=sdata["email"],
+                    hashed_password=hashed_pass,
+                    phone=sdata["phone"],
+                    role_id=roles_dict["supplier"].id,
+                    company_id=s_comp.id,
+                    is_active=True
+                )
+                db.add(s_user)
+                await db.flush()
             supplier_users[sdata["email"]] = s_user
 
         # Seed Demo Vendor (My Supermarket)
@@ -159,20 +161,8 @@ async def seed_data():
         vendor_user = res.scalars().first()
         if not vendor_user:
             print("[SEED] Creating demo vendor: My Supermarket (vendor@supermarket.com)...")
-            hashed_pass = get_password_hash("Password123!")
-            vendor_user = User(
-                full_name="My Supermarket Retailers",
-                email=vendor_email,
-                hashed_password=hashed_pass,
-                phone="+91 9443322110",
-                role_id=roles_dict["vendor"].id,
-                is_active=True
-            )
-            db.add(vendor_user)
-            await db.flush()
-
+            
             v_comp = Company(
-                user_id=vendor_user.id,
                 company_name="My Supermarket",
                 business_type="Retail Supermarket Chain",
                 description="Leading fresh grocery & FMCG retail supermarket chain in Tamil Nadu.",
@@ -190,6 +180,19 @@ async def seed_data():
                 address_type="shipping"
             )
             db.add(v_addr)
+            await db.flush()
+
+            hashed_pass = get_password_hash("Password123!")
+            vendor_user = User(
+                full_name="My Supermarket Retailers",
+                email=vendor_email,
+                hashed_password=hashed_pass,
+                phone="+91 9443322110",
+                role_id=roles_dict["vendor"].id,
+                company_id=v_comp.id,
+                is_active=True
+            )
+            db.add(vendor_user)
             await db.flush()
 
         # Seed Sample Orders for ABC Distributors
