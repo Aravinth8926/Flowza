@@ -51,7 +51,7 @@ async def test_end_to_end():
             assert create_res.status_code == 200, f"Create order failed: {create_res.text}"
             order_data = create_res.json()["data"]
             order_id = order_data["raw_id"]
-            print(f"[TEST] Order created successfully! ID={order_id}, Total={order_data['formatted_total']}")
+            print(f"[TEST] Order created successfully! ID={order_id}, Total={order_data.get('estimated_value')}")
 
             print("[TEST] 5. Waiting for Supplier WebSocket real-time event...")
             ws_msg = await asyncio.wait_for(sup_ws.recv(), timeout=5.0)
@@ -92,7 +92,7 @@ async def test_end_to_end():
             assert detail["supplier_response"] == "Confirmed. Will dispatch by 14th morning."
             print(f"[TEST] Verified order detail: status={detail['status']}, response='{detail['supplier_response']}'")
 
-    print("\n✅ ALL END-TO-END TESTS PASSED SUCCESSFULLY!")
+    print("\n[SUCCESS] ALL END-TO-END TESTS PASSED SUCCESSFULLY!")
 
 if __name__ == "__main__":
     asyncio.run(test_end_to_end())

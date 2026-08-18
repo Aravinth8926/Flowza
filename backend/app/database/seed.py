@@ -2,6 +2,7 @@ import asyncio
 import sys
 import os
 from datetime import datetime, date, timedelta
+from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -14,6 +15,9 @@ from app.models.role import Role
 from app.models.user import User
 from app.models.company import Company
 from app.models.address import Address
+from app.models.product import Product
+from app.models.inventory import Inventory
+from app.models.cart import Cart, CartItem
 from app.models.order_request import OrderRequest, OrderRequestItem
 from app.core.security import get_password_hash
 
@@ -208,11 +212,14 @@ async def seed_data():
                 ord1 = OrderRequest(
                     vendor_id=vendor_user.id,
                     supplier_id=abc_supplier.id,
+                    vendor_company_id=vendor_user.company_id,
+                    supplier_company_id=abc_supplier.company_id,
+                    created_by_user_id=vendor_user.id,
                     title="Weekly Vegetable Supply — August Week 2",
                     description="Need fresh vegetables for our supermarket branch in Coimbatore. Prefer hybrid varieties for tomatoes.",
                     quantity=105,
                     unit="kg",
-                    estimated_price=3800.00,
+                    estimated_price=Decimal("3800.00"),
                     delivery_date=today + timedelta(days=4),
                     delivery_address="45, MG Road, Coimbatore, Tamil Nadu - 641001",
                     priority="medium",
@@ -222,20 +229,23 @@ async def seed_data():
                 await db.flush()
 
                 db.add_all([
-                    OrderRequestItem(order_request_id=ord1.id, product_name="Tomatoes", quantity=50, unit="kg", estimated_price=40.00),
-                    OrderRequestItem(order_request_id=ord1.id, product_name="Onions", quantity=30, unit="kg", estimated_price=35.00),
-                    OrderRequestItem(order_request_id=ord1.id, product_name="Potatoes", quantity=25, unit="kg", estimated_price=30.00),
+                    OrderRequestItem(order_request_id=ord1.id, product_name="Tomatoes", product_name_snapshot="Tomatoes", quantity=50, unit="kg", unit_price=Decimal("40.00"), estimated_price=Decimal("40.00")),
+                    OrderRequestItem(order_request_id=ord1.id, product_name="Onions", product_name_snapshot="Onions", quantity=30, unit="kg", unit_price=Decimal("35.00"), estimated_price=Decimal("35.00")),
+                    OrderRequestItem(order_request_id=ord1.id, product_name="Potatoes", product_name_snapshot="Potatoes", quantity=25, unit="kg", unit_price=Decimal("30.00"), estimated_price=Decimal("30.00")),
                 ])
 
                 # Order 2: Pending (Monthly Grocery Restock)
                 ord2 = OrderRequest(
                     vendor_id=vendor_user.id,
                     supplier_id=abc_supplier.id,
+                    vendor_company_id=vendor_user.company_id,
+                    supplier_company_id=abc_supplier.company_id,
+                    created_by_user_id=vendor_user.id,
                     title="Monthly Grocery Restock — August",
                     description="Standard grocery stock replenishment for Coimbatore branch. Require export-quality packaging.",
                     quantity=170,
                     unit="kg",
-                    estimated_price=15200.00,
+                    estimated_price=Decimal("15200.00"),
                     delivery_date=today + timedelta(days=9),
                     delivery_address="45, MG Road, Coimbatore, Tamil Nadu - 641001",
                     priority="high",
@@ -245,20 +255,23 @@ async def seed_data():
                 await db.flush()
 
                 db.add_all([
-                    OrderRequestItem(order_request_id=ord2.id, product_name="Sona Masoori Rice", quantity=100, unit="kg", estimated_price=75.00),
-                    OrderRequestItem(order_request_id=ord2.id, product_name="Toor Dal", quantity=40, unit="kg", estimated_price=120.00),
-                    OrderRequestItem(order_request_id=ord2.id, product_name="Refined Sunflower Oil", quantity=30, unit="liters", estimated_price=96.67),
+                    OrderRequestItem(order_request_id=ord2.id, product_name="Sona Masoori Rice", product_name_snapshot="Sona Masoori Rice", quantity=100, unit="kg", unit_price=Decimal("75.00"), estimated_price=Decimal("75.00")),
+                    OrderRequestItem(order_request_id=ord2.id, product_name="Toor Dal", product_name_snapshot="Toor Dal", quantity=40, unit="kg", unit_price=Decimal("120.00"), estimated_price=Decimal("120.00")),
+                    OrderRequestItem(order_request_id=ord2.id, product_name="Refined Sunflower Oil", product_name_snapshot="Refined Sunflower Oil", quantity=30, unit="liters", unit_price=Decimal("96.67"), estimated_price=Decimal("96.67")),
                 ])
 
                 # Order 3: Accepted (Fresh Fruits)
                 ord3 = OrderRequest(
                     vendor_id=vendor_user.id,
                     supplier_id=abc_supplier.id,
+                    vendor_company_id=vendor_user.company_id,
+                    supplier_company_id=abc_supplier.company_id,
+                    created_by_user_id=vendor_user.id,
                     title="Fresh Fruits — Mango Season Special",
                     description="Alphonso and Banganapalli seasonal mango batch delivery.",
                     quantity=60,
                     unit="kg",
-                    estimated_price=9500.00,
+                    estimated_price=Decimal("9500.00"),
                     delivery_date=today + timedelta(days=1),
                     delivery_address="45, MG Road, Coimbatore, Tamil Nadu - 641001",
                     priority="medium",
@@ -270,19 +283,22 @@ async def seed_data():
                 await db.flush()
 
                 db.add_all([
-                    OrderRequestItem(order_request_id=ord3.id, product_name="Alphonso Mangoes", quantity=35, unit="kg", estimated_price=180.00),
-                    OrderRequestItem(order_request_id=ord3.id, product_name="Banganapalli Mangoes", quantity=25, unit="kg", estimated_price=128.00),
+                    OrderRequestItem(order_request_id=ord3.id, product_name="Alphonso Mangoes", product_name_snapshot="Alphonso Mangoes", quantity=35, unit="kg", unit_price=Decimal("180.00"), estimated_price=Decimal("180.00")),
+                    OrderRequestItem(order_request_id=ord3.id, product_name="Banganapalli Mangoes", product_name_snapshot="Banganapalli Mangoes", quantity=25, unit="kg", unit_price=Decimal("128.00"), estimated_price=Decimal("128.00")),
                 ])
 
                 # Order 4: Completed (Regular Stock)
                 ord4 = OrderRequest(
                     vendor_id=vendor_user.id,
                     supplier_id=abc_supplier.id,
+                    vendor_company_id=vendor_user.company_id,
+                    supplier_company_id=abc_supplier.company_id,
+                    created_by_user_id=vendor_user.id,
                     title="Regular Stock — Week 31",
                     description="Fulfilled regular inventory batch for Week 31.",
                     quantity=80,
                     unit="kg",
-                    estimated_price=12400.00,
+                    estimated_price=Decimal("12400.00"),
                     delivery_date=today - timedelta(days=5),
                     delivery_address="45, MG Road, Coimbatore, Tamil Nadu - 641001",
                     priority="low",
@@ -294,8 +310,8 @@ async def seed_data():
                 await db.flush()
 
                 db.add_all([
-                    OrderRequestItem(order_request_id=ord4.id, product_name="Wheat Flour (Atta)", quantity=50, unit="kg", estimated_price=48.00),
-                    OrderRequestItem(order_request_id=ord4.id, product_name="White Sugar", quantity=30, unit="kg", estimated_price=44.00),
+                    OrderRequestItem(order_request_id=ord4.id, product_name="Wheat Flour (Atta)", product_name_snapshot="Wheat Flour (Atta)", quantity=50, unit="kg", unit_price=Decimal("48.00"), estimated_price=Decimal("48.00")),
+                    OrderRequestItem(order_request_id=ord4.id, product_name="White Sugar", product_name_snapshot="White Sugar", quantity=30, unit="kg", unit_price=Decimal("44.00"), estimated_price=Decimal("44.00")),
                 ])
 
         await db.commit()

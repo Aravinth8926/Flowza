@@ -22,13 +22,14 @@ if config.config_file_name is not None:
 
 # Import models metadata
 from app.database.base import Base
-from app.models import role, user, company, address, order_request
+from app.models import role, user, company, address, product, inventory, cart, order_request
 
 target_metadata = Base.metadata
 
-# Read from settings environment variable dynamically
+# Read from settings environment variable dynamically if not set
 from app.core.config import settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+if not config.get_main_option("sqlalchemy.url"):
+    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""

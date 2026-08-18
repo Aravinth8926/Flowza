@@ -7,6 +7,9 @@ from app.database.base import Base
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.address import Address
+    from app.models.product import Product
+    from app.models.cart import Cart
+    from app.models.order_request import OrderRequest
 
 class Company(Base):
     __tablename__ = "companies"
@@ -20,6 +23,19 @@ class Company(Base):
     # Relationships
     users: Mapped[List["User"]] = relationship("User", back_populates="company")
     addresses: Mapped[List["Address"]] = relationship("Address", back_populates="company", cascade="all, delete-orphan")
+    products: Mapped[List["Product"]] = relationship("Product", back_populates="company", cascade="all, delete-orphan")
+    vendor_orders: Mapped[List["OrderRequest"]] = relationship(
+        "OrderRequest", foreign_keys="[OrderRequest.vendor_company_id]", back_populates="vendor_company"
+    )
+    supplier_orders: Mapped[List["OrderRequest"]] = relationship(
+        "OrderRequest", foreign_keys="[OrderRequest.supplier_company_id]", back_populates="supplier_company"
+    )
+    vendor_carts: Mapped[List["Cart"]] = relationship(
+        "Cart", foreign_keys="[Cart.vendor_company_id]", back_populates="vendor_company"
+    )
+    supplier_carts: Mapped[List["Cart"]] = relationship(
+        "Cart", foreign_keys="[Cart.supplier_company_id]", back_populates="supplier_company"
+    )
 
     @property
     def address(self) -> Optional["Address"]:

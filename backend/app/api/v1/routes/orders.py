@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, date
+from decimal import Decimal
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
@@ -19,6 +20,7 @@ router = APIRouter()
 
 # Pydantic Schemas
 class OrderItemCreate(BaseModel):
+    product_id: Optional[str] = None
     product_name: str
     quantity: int
     unit: Optional[str] = "kg"
@@ -56,14 +58,17 @@ def format_order_response(o: OrderRequest, vendor_user: Optional[User], supplier
     items_list = []
     if o.items:
         for idx, item in enumerate(o.items):
-            est_p = float(item.estimated_price) if item.estimated_price is not None else 0.0
+            est_p = float(item.estimated_price if item.estimated_price is not None else (item.unit_price or 0.0))
             subtot = est_p * item.quantity
             items_list.append({
                 "id": str(item.id),
                 "index": idx + 1,
+                "product_id": str(item.product_id) if item.product_id else None,
                 "product_name": item.product_name,
+                "product_name_snapshot": item.product_name_snapshot or item.product_name,
                 "quantity": item.quantity,
                 "unit": item.unit or "kg",
+                "unit_price": float(item.unit_price) if item.unit_price is not None else est_p,
                 "estimated_price": est_p,
                 "subtotal": subtot,
                 "notes": item.notes,
@@ -161,11 +166,12 @@ async def create_order(
         supplier_id=supplier.id,
         vendor_company_id=vendor_company.id if vendor_company else None,
         supplier_company_id=supplier_company.id if supplier_company else None,
+        created_by_user_id=current_user.id,
         title=req.title,
         description=req.description,
         quantity=total_qty,
         unit=req.items[0].unit if (req.items and len(req.items) > 0 and req.items[0].unit) else "kg",
-        estimated_price=total_price if total_price > 0 else None,
+        estimated_price=Decimal(str(total_price)) if total_price > 0 else None,
         delivery_date=parsed_date,
         delivery_address=req.delivery_address or (vendor_company.address.address_line if (vendor_company and vendor_company.address) else "45, MG Road, Coimbatore, Tamil Nadu - 641001"),
         priority=(req.priority or "medium").lower(),
@@ -177,12 +183,22 @@ async def create_order(
     # Add items if present
     if req.items:
         for item in req.items:
+            prod_uuid = None
+            if item.product_id:
+                try:
+                    prod_uuid = uuid.UUID(item.product_id)
+                except ValueError:
+                    prod_uuid = None
+            item_est = Decimal(str(item.estimated_price)) if item.estimated_price is not None else None
             db_item = OrderRequestItem(
                 order_request_id=new_order.id,
+                product_id=prod_uuid,
                 product_name=item.product_name,
+                product_name_snapshot=item.product_name,
                 quantity=item.quantity,
                 unit=item.unit or "kg",
-                estimated_price=item.estimated_price,
+                unit_price=item_est,
+                estimated_price=item_est,
                 notes=item.notes,
             )
             db.add(db_item)

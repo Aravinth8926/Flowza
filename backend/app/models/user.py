@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import String, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base
@@ -8,6 +8,8 @@ from app.database.base import Base
 if TYPE_CHECKING:
     from app.models.role import Role
     from app.models.company import Company
+    from app.models.cart import Cart
+    from app.models.order_request import OrderRequest
 
 class User(Base):
     __tablename__ = "users"
@@ -25,3 +27,7 @@ class User(Base):
     # Relationships
     role: Mapped["Role"] = relationship("Role", back_populates="users")
     company: Mapped[Optional["Company"]] = relationship("Company", back_populates="users")
+    carts: Mapped[List["Cart"]] = relationship("Cart", back_populates="vendor")
+    created_orders: Mapped[List["OrderRequest"]] = relationship(
+        "OrderRequest", foreign_keys="[OrderRequest.created_by_user_id]", back_populates="created_by_user"
+    )

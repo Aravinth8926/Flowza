@@ -12,7 +12,7 @@ from app.core.websocket import router as ws_router
 from app.database.session import engine
 from app.database.base import Base
 # Import all models to ensure metadata registration
-from app.models import role, user, company, address, order_request
+from app.models import role, user, company, address, product, inventory, cart, order_request
 
 # Ensure uploads directories exist before mounting static folder
 os.makedirs("uploads", exist_ok=True)
@@ -124,6 +124,17 @@ app.include_router(suppliers.router, prefix="/api/v1/suppliers", tags=["Supplier
 app.include_router(orders.router, prefix="/api/v1/orders", tags=["Orders"])
 app.include_router(ws_router, tags=["WebSocket"])
 
+@app.get("/", tags=["Root"])
+async def root():
+    return {
+        "status": "online",
+        "message": "Welcome to Flowza B2B Supply Chain & Procurement API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
 @app.get("/health", tags=["Health"])
 async def health():
     return {"status": "ok", "app": "Flowza B2B Backend"}
+
