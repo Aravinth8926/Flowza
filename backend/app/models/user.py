@@ -28,12 +28,6 @@ class User(Base):
     role: Mapped["Role"] = relationship("Role", back_populates="users")
     company: Mapped[Optional["Company"]] = relationship("Company", back_populates="users")
     carts: Mapped[List["Cart"]] = relationship("Cart", back_populates="vendor")
-    vendor_orders: Mapped[List["OrderRequest"]] = relationship(
-        "OrderRequest", foreign_keys="[OrderRequest.vendor_id]", back_populates="vendor"
-    )
-    supplier_orders: Mapped[List["OrderRequest"]] = relationship(
-        "OrderRequest", foreign_keys="[OrderRequest.supplier_id]", back_populates="supplier"
-    )
     created_orders: Mapped[List["OrderRequest"]] = relationship(
         "OrderRequest", foreign_keys="[OrderRequest.created_by_user_id]", back_populates="created_by_user"
     )

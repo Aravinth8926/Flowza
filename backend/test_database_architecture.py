@@ -7,14 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.database.base import Base
-from app.models.role import Role
-from app.models.company import Company
-from app.models.user import User
-from app.models.address import Address
-from app.models.product import Product
-from app.models.inventory import Inventory
-from app.models.cart import Cart, CartItem
-from app.models.order_request import OrderRequest, OrderRequestItem
+from app.models import Role, Company, User, Address, Product, Inventory, Cart, CartItem, OrderRequest, OrderRequestItem
 
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -229,8 +222,6 @@ async def test_order_and_snapshots(session_factory, ids, product_id):
     print("\n[TEST 5] OrderRequest & OrderRequestItem pricing and name snapshots...")
     async with session_factory() as session:
         order_req = OrderRequest(
-            vendor_id=ids["user_vendor_id"],
-            supplier_id=ids["user_supplier_1_id"],
             vendor_company_id=ids["comp_vendor_id"],
             supplier_company_id=ids["comp_supplier_1_id"],
             created_by_user_id=ids["user_vendor_id"],

@@ -96,7 +96,7 @@ def format_order_response(o: OrderRequest, vendor_user: Optional[User], supplier
         "responded_at": o.responded_at.isoformat() if o.responded_at else None,
         "created_at": o.created_at.isoformat() if hasattr(o, "created_at") and o.created_at else datetime.now().isoformat(),
         "vendor": {
-            "id": str(vendor_user.id) if vendor_user else str(o.vendor_id),
+            "id": str(vendor_user.id) if vendor_user else str(o.created_by_user_id),
             "company_name": v_comp.company_name if v_comp else (vendor_user.full_name if vendor_user else "Vendor Company"),
             "full_name": vendor_user.full_name if vendor_user else "Vendor Representative",
             "email": vendor_user.email if vendor_user else "",
@@ -108,7 +108,7 @@ def format_order_response(o: OrderRequest, vendor_user: Optional[User], supplier
             "logo_url": v_comp.logo_url if v_comp else None,
         },
         "supplier": {
-            "id": str(supplier_user.id) if supplier_user else str(o.supplier_id),
+            "id": str(supplier_user.id) if supplier_user else "",
             "company_name": s_comp.company_name if s_comp else (supplier_user.full_name if supplier_user else "Supplier Company"),
             "business_type": s_comp.business_type if s_comp else "Wholesale Distributor",
             "full_name": supplier_user.full_name if supplier_user else "Supplier Representative",
@@ -161,11 +161,14 @@ async def create_order(
     total_qty = sum(item.quantity for item in req.items) if req.items else 1
     total_price = sum((item.estimated_price or 0.0) * item.quantity for item in req.items) if req.items else 0.0
 
+    if not current_user.company_id:
+        raise HTTPException(status_code=400, detail="Vendor user must belong to a company to place orders")
+    if not supplier.company_id:
+        raise HTTPException(status_code=400, detail="Supplier user must belong to a company to receive orders")
+
     new_order = OrderRequest(
-        vendor_id=current_user.id,
-        supplier_id=supplier.id,
-        vendor_company_id=vendor_company.id if vendor_company else None,
-        supplier_company_id=supplier_company.id if supplier_company else None,
+        vendor_company_id=current_user.company_id,
+        supplier_company_id=supplier.company_id,
         created_by_user_id=current_user.id,
         title=req.title,
         description=req.description,
@@ -253,7 +256,7 @@ async def get_incoming_orders(
     stmt = (
         select(OrderRequest)
         .options(selectinload(OrderRequest.items))
-        .where(OrderRequest.supplier_id == current_user.id, OrderRequest.is_deleted == False)
+        .where(OrderRequest.supplier_company_id == current_user.company_id, OrderRequest.is_deleted == False)
     )
 
     if status_filter and status_filter.lower() != "all":
@@ -290,7 +293,7 @@ async def get_incoming_orders(
     for o in orders:
         # Fetch vendor user info
         v_res = await db.execute(
-            select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.id == o.vendor_id)
+            select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.id == o.created_by_user_id)
         )
         vendor_user = v_res.scalars().first()
         formatted.append(format_order_response(o, vendor_user, current_user))
@@ -322,7 +325,7 @@ async def get_my_sent_orders(
     stmt = (
         select(OrderRequest)
         .options(selectinload(OrderRequest.items))
-        .where(OrderRequest.vendor_id == current_user.id, OrderRequest.is_deleted == False)
+        .where(OrderRequest.vendor_company_id == current_user.company_id, OrderRequest.is_deleted == False)
     )
 
     if status_filter and status_filter.lower() != "all":
@@ -350,7 +353,7 @@ async def get_my_sent_orders(
     formatted = []
     for o in orders:
         s_res = await db.execute(
-            select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.id == o.supplier_id)
+            select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.company_id == o.supplier_company_id)
         )
         supplier_user = s_res.scalars().first()
         formatted.append(format_order_response(o, current_user, supplier_user))
@@ -376,7 +379,7 @@ async def get_order_stats(
 ):
     role_name = current_user.role.name if current_user.role else "vendor"
     is_supplier = role_name == "supplier"
-    user_filter = OrderRequest.supplier_id == current_user.id if is_supplier else OrderRequest.vendor_id == current_user.id
+    user_filter = OrderRequest.supplier_company_id == current_user.company_id if is_supplier else OrderRequest.vendor_company_id == current_user.company_id
 
     # Fetch status counts
     total_stmt = select(func.count(OrderRequest.id)).where(user_filter, OrderRequest.is_deleted == False)
@@ -445,18 +448,18 @@ async def get_order_by_id(
 
     # ── Authorization guard ─────────────────────────────────────────────────
     # Only the vendor who placed the order or the supplier it was sent to may view it.
-    if current_user.id not in (order.vendor_id, order.supplier_id):
+    if current_user.company_id not in (order.vendor_company_id, order.supplier_company_id):
         raise HTTPException(status_code=403, detail="You do not have permission to view this order")
     # ────────────────────────────────────────────────────────────────────────
 
     # Fetch vendor & supplier
     v_res = await db.execute(
-        select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.id == order.vendor_id)
+        select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.id == order.created_by_user_id)
     )
     vendor_user = v_res.scalars().first()
 
     s_res = await db.execute(
-        select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.id == order.supplier_id)
+        select(User).options(selectinload(User.company).selectinload(Company.addresses)).where(User.company_id == order.supplier_company_id)
     )
     supplier_user = s_res.scalars().first()
 
@@ -498,7 +501,7 @@ async def respond_to_order(
 
     # ── Authorization guard ─────────────────────────────────────────────────
     # Only the designated supplier for this order may accept/reject it.
-    if current_user.id != order.supplier_id:
+    if current_user.company_id != order.supplier_company_id:
         raise HTTPException(
             status_code=403,
             detail="Only the designated supplier may respond to this order",
@@ -524,7 +527,7 @@ async def respond_to_order(
     supplier_cname = sup_comp.company_name if sup_comp else current_user.full_name
 
     # Real-time WebSocket notify to Vendor
-    await ws_manager.send_to_user(str(order.vendor_id), {
+    await ws_manager.send_to_user(str(order.created_by_user_id), {
         "type": "order_status_updated",
         "data": {
             "id": str(order.id),
@@ -581,7 +584,7 @@ async def update_order_status(
 
     # ── Authorization guard ─────────────────────────────────────────────────
     # Only the vendor or the supplier assigned to this order may update its status.
-    if current_user.id not in (order.vendor_id, order.supplier_id):
+    if current_user.company_id not in (order.vendor_company_id, order.supplier_company_id):
         raise HTTPException(
             status_code=403,
             detail="You do not have permission to update this order's status",
@@ -599,7 +602,16 @@ async def update_order_status(
     await db.commit()
 
     # Notify other party
-    other_party_id = str(order.vendor_id) if current_user.id == order.supplier_id else str(order.supplier_id)
+    if current_user.company_id == order.supplier_company_id:
+        other_party_id = str(order.created_by_user_id)
+    else:
+        # Fetch first active user of the supplier company
+        s_user_res = await db.execute(
+            select(User).where(User.company_id == order.supplier_company_id, User.is_active == True)
+        )
+        s_user = s_user_res.scalars().first()
+        other_party_id = str(s_user.id) if s_user else ""
+
     await ws_manager.send_to_user(other_party_id, {
         "type": "order_status_updated",
         "data": {

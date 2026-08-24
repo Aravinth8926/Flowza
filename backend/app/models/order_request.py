@@ -13,10 +13,8 @@ if TYPE_CHECKING:
 class OrderRequest(Base):
     __tablename__ = "order_requests"
 
-    vendor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-    supplier_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-    vendor_company_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("companies.id"), nullable=True)
-    supplier_company_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("companies.id"), nullable=True)
+    vendor_company_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("companies.id"), nullable=False)
+    supplier_company_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("companies.id"), nullable=False)
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     title: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -33,11 +31,9 @@ class OrderRequest(Base):
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
-    vendor: Mapped["User"] = relationship("User", foreign_keys=[vendor_id], back_populates="vendor_orders")
-    supplier: Mapped["User"] = relationship("User", foreign_keys=[supplier_id], back_populates="supplier_orders")
     created_by_user: Mapped["User"] = relationship("User", foreign_keys=[created_by_user_id], back_populates="created_orders")
-    vendor_company: Mapped[Optional["Company"]] = relationship("Company", foreign_keys=[vendor_company_id], back_populates="vendor_orders")
-    supplier_company: Mapped[Optional["Company"]] = relationship("Company", foreign_keys=[supplier_company_id], back_populates="supplier_orders")
+    vendor_company: Mapped["Company"] = relationship("Company", foreign_keys=[vendor_company_id], back_populates="vendor_orders")
+    supplier_company: Mapped["Company"] = relationship("Company", foreign_keys=[supplier_company_id], back_populates="supplier_orders")
     items: Mapped[List["OrderRequestItem"]] = relationship("OrderRequestItem", back_populates="order_request", cascade="all, delete-orphan")
 
 

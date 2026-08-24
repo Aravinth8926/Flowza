@@ -73,9 +73,8 @@ async def list_suppliers(
         comp = s.company
         addr = comp.address if comp else None
 
-        # Calculate completed orders count
         orders_count_stmt = select(func.count(OrderRequest.id)).where(
-            OrderRequest.supplier_id == s.id, OrderRequest.status == "completed"
+            OrderRequest.supplier_company_id == s.company_id, OrderRequest.status == "completed"
         )
         orders_res = await db.execute(orders_count_stmt)
         total_orders = orders_res.scalar_one_or_none() or 0
@@ -135,7 +134,7 @@ async def get_supplier_details(
     addr = comp.address if comp else None
 
     orders_count_stmt = select(func.count(OrderRequest.id)).where(
-        OrderRequest.supplier_id == supplier.id
+        OrderRequest.supplier_company_id == supplier.company_id
     )
     orders_res = await db.execute(orders_count_stmt)
     total_orders = orders_res.scalar_one_or_none() or 0

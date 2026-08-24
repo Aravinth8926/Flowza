@@ -195,7 +195,7 @@ async def seed_data():
         # Seed Sample Orders for ABC Distributors
         abc_supplier = supplier_users.get("abc@distributors.com")
         if abc_supplier and vendor_user:
-            orders_res = await db.execute(select(OrderRequest).where(OrderRequest.supplier_id == abc_supplier.id))
+            orders_res = await db.execute(select(OrderRequest).where(OrderRequest.supplier_company_id == abc_supplier.company_id))
             existing_orders = orders_res.scalars().all()
             if not existing_orders:
                 print("[SEED] Creating realistic demo purchase orders for ABC Distributors...")
@@ -203,8 +203,6 @@ async def seed_data():
 
                 # Order 1: Pending (Weekly Vegetable Supply)
                 ord1 = OrderRequest(
-                    vendor_id=vendor_user.id,
-                    supplier_id=abc_supplier.id,
                     vendor_company_id=vendor_user.company_id,
                     supplier_company_id=abc_supplier.company_id,
                     created_by_user_id=vendor_user.id,
@@ -229,8 +227,6 @@ async def seed_data():
 
                 # Order 2: Pending (Monthly Grocery Restock)
                 ord2 = OrderRequest(
-                    vendor_id=vendor_user.id,
-                    supplier_id=abc_supplier.id,
                     vendor_company_id=vendor_user.company_id,
                     supplier_company_id=abc_supplier.company_id,
                     created_by_user_id=vendor_user.id,
@@ -255,8 +251,6 @@ async def seed_data():
 
                 # Order 3: Accepted (Fresh Fruits)
                 ord3 = OrderRequest(
-                    vendor_id=vendor_user.id,
-                    supplier_id=abc_supplier.id,
                     vendor_company_id=vendor_user.company_id,
                     supplier_company_id=abc_supplier.company_id,
                     created_by_user_id=vendor_user.id,
@@ -282,8 +276,6 @@ async def seed_data():
 
                 # Order 4: Completed (Regular Stock)
                 ord4 = OrderRequest(
-                    vendor_id=vendor_user.id,
-                    supplier_id=abc_supplier.id,
                     vendor_company_id=vendor_user.company_id,
                     supplier_company_id=abc_supplier.company_id,
                     created_by_user_id=vendor_user.id,

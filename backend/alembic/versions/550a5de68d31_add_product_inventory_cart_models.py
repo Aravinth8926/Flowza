@@ -1,8 +1,8 @@
 """add_product_inventory_cart_models
 
-Revision ID: a8c9f153a882
+Revision ID: 550a5de68d31
 Revises: a1f8c29e4d71
-Create Date: 2026-08-24 11:09:25.641174
+Create Date: 2026-08-24 11:27:56.959604
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'a8c9f153a882'
+revision: str = '550a5de68d31'
 down_revision: Union[str, None] = 'a1f8c29e4d71'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -39,15 +39,22 @@ def upgrade() -> None:
     # 3. inventories
     with op.batch_alter_table('inventories', schema=None) as batch_op:
         batch_op.drop_index('ix_inventories_product_id')
-        batch_op.drop_constraint('uq_inventory_product_id', type_='unique')
         batch_op.drop_constraint('fk_inventories_product_id', type_='foreignkey')
         batch_op.create_foreign_key('fk_inventories_product_id', 'products', ['product_id'], ['id'])
 
     # 4. order_requests
     with op.batch_alter_table('order_requests', schema=None) as batch_op:
+        batch_op.alter_column('vendor_company_id',
+               existing_type=sa.CHAR(length=32),
+               nullable=False)
+        batch_op.alter_column('supplier_company_id',
+               existing_type=sa.CHAR(length=32),
+               nullable=False)
         batch_op.alter_column('created_by_user_id',
                existing_type=sa.CHAR(length=32),
                nullable=False)
+        batch_op.drop_column('supplier_id')
+        batch_op.drop_column('vendor_id')
 
     # 5. products
     with op.batch_alter_table('products', schema=None) as batch_op:
@@ -75,7 +82,15 @@ def downgrade() -> None:
 
     # 4. order_requests
     with op.batch_alter_table('order_requests', schema=None) as batch_op:
+        batch_op.add_column(sa.Column('vendor_id', sa.CHAR(length=32), nullable=True))
+        batch_op.add_column(sa.Column('supplier_id', sa.CHAR(length=32), nullable=True))
         batch_op.alter_column('created_by_user_id',
+               existing_type=sa.CHAR(length=32),
+               nullable=True)
+        batch_op.alter_column('supplier_company_id',
+               existing_type=sa.CHAR(length=32),
+               nullable=True)
+        batch_op.alter_column('vendor_company_id',
                existing_type=sa.CHAR(length=32),
                nullable=True)
 
@@ -83,7 +98,6 @@ def downgrade() -> None:
     with op.batch_alter_table('inventories', schema=None) as batch_op:
         batch_op.drop_constraint('fk_inventories_product_id', type_='foreignkey')
         batch_op.create_foreign_key('fk_inventories_product_id', 'products', ['product_id'], ['id'], ondelete='CASCADE')
-        batch_op.create_unique_constraint('uq_inventory_product_id', ['product_id'])
         batch_op.create_index('ix_inventories_product_id', ['product_id'], unique=True)
 
     # 2. carts
