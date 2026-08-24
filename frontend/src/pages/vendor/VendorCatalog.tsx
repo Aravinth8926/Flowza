@@ -8,7 +8,9 @@ import { Badge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
 import { productService } from '../../services/productService';
 import { supplierService } from '../../services/supplierService';
+import cartService from '../../services/cartService';
 import { Product } from '../../types';
+import { toast } from 'sonner';
 import {
     Package,
     Search,
@@ -37,6 +39,20 @@ export const VendorCatalog: React.FC = () => {
     // Detail Modal state
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [addingProductId, setAddingProductId] = useState<string | null>(null);
+
+    const handleAddToCart = async (product: Product, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        setAddingProductId(product.id);
+        try {
+            await cartService.addToCart(product.id);
+            toast.success(`${product.name} added to cart!`);
+        } catch (err: any) {
+            toast.error(err?.response?.data?.error?.message ?? 'Failed to add to cart');
+        } finally {
+            setAddingProductId(null);
+        }
+    };
 
     // Fetch Suppliers for filter dropdown
     const { data: suppliers = [] } = useQuery({
@@ -222,17 +238,28 @@ export const VendorCatalog: React.FC = () => {
                                                 ₹{Number(product.price).toFixed(2)}
                                                 <span className="text-xxs font-normal text-slate-400"> / {product.unit}</span>
                                             </div>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/20"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleOpenDetail(product);
-                                                }}
-                                            >
-                                                <Eye size={14} />
-                                            </Button>
+                                            <div className="flex items-center gap-1">
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="p-1 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleOpenDetail(product);
+                                                    }}
+                                                >
+                                                    <Eye size={14} />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/20"
+                                                    disabled={addingProductId === product.id}
+                                                    onClick={(e) => handleAddToCart(product, e)}
+                                                >
+                                                    <ShoppingCart size={14} />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 </Card>
@@ -367,14 +394,26 @@ export const VendorCatalog: React.FC = () => {
                                 </Button>
                                 <Button
                                     size="sm"
+                                    variant="outline"
                                     onClick={() => {
                                         setIsDetailModalOpen(false);
                                         handleCreateOrderRequest(selectedProduct);
                                     }}
                                     className="flex items-center gap-1.5"
                                 >
-                                    <ShoppingCart size={14} />
                                     Request Order
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    disabled={addingProductId === selectedProduct.id}
+                                    onClick={() => {
+                                        setIsDetailModalOpen(false);
+                                        handleAddToCart(selectedProduct);
+                                    }}
+                                    className="flex items-center gap-1.5"
+                                >
+                                    <ShoppingCart size={14} />
+                                    Add to Cart
                                 </Button>
                             </div>
                         </div>

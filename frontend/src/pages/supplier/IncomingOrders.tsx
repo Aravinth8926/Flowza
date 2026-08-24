@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PageWrapper } from '../../components/layout/PageWrapper';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/Card';
+import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
+import { OrderTimeline } from '../../components/orders/OrderTimeline';
 import { orderService } from '../../services/orderService';
 import { PurchaseOrder, OrderStatus } from '../../types';
 import { useWebSocket } from '../../hooks/useWebSocket';
@@ -14,27 +16,23 @@ import { useAuthStore } from '../../store/auth';
 import { toast } from 'sonner';
 import {
   Package,
-  Bell,
   CheckCircle2,
   Truck,
+  Box,
   Search,
   ArrowUpDown,
   Clock,
   MapPin,
-  Building,
   Check,
   X,
   Eye,
   Calendar,
   AlertCircle,
-  FileText,
-  Sparkles,
   Phone,
   Mail,
-  ChevronRight,
   ShieldCheck,
-  Receipt,
-  User as UserIcon,
+  Building,
+  RotateCcw,
 } from 'lucide-react';
 
 function getRelativeTime(dateString: string): string {
@@ -60,18 +58,17 @@ export const IncomingOrders: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'priority' | 'value'>('newest');
 
-  // Track newly arrived order IDs to show "✨ NEW" badge for 60 seconds
-  const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
-
   // Modals state
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAcceptModalOpen, setIsAcceptModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [isShipModalOpen, setIsShipModalOpen] = useState(false);
 
   // Form notes state
   const [acceptNote, setAcceptNote] = useState('');
   const [rejectReason, setRejectReason] = useState('');
+  const [shipNote, setShipNote] = useState('');
 
   // Fetch Stats Query
   const { data: stats } = useQuery({
@@ -99,48 +96,24 @@ export const IncomingOrders: React.FC = () => {
   const handleWebSocketMessage = useCallback(
     (message: any) => {
       if (message.type === 'new_order_request') {
-        // Invalidate queries so TanStack Query immediately refetches
         queryClient.invalidateQueries({ queryKey: ['incoming-orders'] });
         queryClient.invalidateQueries({ queryKey: ['order-stats'] });
 
-        const orderId = message.data.id;
         const vendorCompany = message.data.vendor_company || 'Vendor';
         const itemCount = message.data.item_count || 1;
         const estValue = message.data.estimated_value ? `₹${Number(message.data.estimated_value).toLocaleString('en-IN')}` : '';
 
-        // Add to newOrderIds set for 60s
-        setNewOrderIds((prev) => new Set(prev).add(orderId));
-        setTimeout(() => {
-          setNewOrderIds((prev) => {
-            const next = new Set(prev);
-            next.delete(orderId);
-            return next;
-          });
-        }, 60000);
-
-        // Toast notification
         toast.info(`🔔 New purchase order from ${vendorCompany}!`, {
           description: `${itemCount} items • ${estValue}`,
           duration: 7000,
-          action: {
-            label: 'View',
-            onClick: () => {
-              orderService.getOrderById(orderId).then((ord) => {
-                if (ord) {
-                  setSelectedOrder(ord);
-                  setIsDetailModalOpen(true);
-                }
-              });
-            },
-          },
         });
       } else if (message.type === 'order_status_updated') {
         queryClient.invalidateQueries({ queryKey: ['incoming-orders'] });
         queryClient.invalidateQueries({ queryKey: ['order-stats'] });
 
-        if (message.data.status === 'cancelled') {
-          toast.warning('An incoming order was cancelled by the vendor.');
-        }
+        const orderNum = message.data.order_number || 'Order';
+        const newSt = message.data.status;
+        toast.info(`ℹ️ ${orderNum} status updated to ${newSt.replace('_', ' ')}`);
       }
     },
     [queryClient]
@@ -151,9 +124,9 @@ export const IncomingOrders: React.FC = () => {
   // Accept Order Mutation
   const acceptMutation = useMutation({
     mutationFn: async ({ orderId, note }: { orderId: string; note?: string }) => {
-      return await orderService.respondToOrder(orderId, 'accept', note || 'Order accepted and queued for fulfillment.');
+      return await orderService.acceptOrder(orderId, note || 'Order accepted and queued for fulfillment.');
     },
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incoming-orders'] });
       queryClient.invalidateQueries({ queryKey: ['order-stats'] });
       toast.success('Order accepted! Vendor has been notified in real-time.');
@@ -161,45 +134,50 @@ export const IncomingOrders: React.FC = () => {
       setIsDetailModalOpen(false);
       setAcceptNote('');
     },
-    onError: () => {
-      toast.error('Failed to accept order. Please try again.');
+    onError: (err: any) => {
+      toast.error(err.response?.data?.detail || 'Failed to accept order.');
     },
   });
 
   // Reject Order Mutation
   const rejectMutation = useMutation({
     mutationFn: async ({ orderId, reason }: { orderId: string; reason: string }) => {
-      return await orderService.respondToOrder(orderId, 'reject', reason);
+      return await orderService.rejectOrder(orderId, reason);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incoming-orders'] });
       queryClient.invalidateQueries({ queryKey: ['order-stats'] });
-      toast.error('Order rejected. Vendor has been notified.');
+      toast.error('Order rejected. Reserved stock released back to inventory.');
       setIsRejectModalOpen(false);
       setIsDetailModalOpen(false);
       setRejectReason('');
     },
-    onError: () => {
-      toast.error('Failed to reject order. Please try again.');
+    onError: (err: any) => {
+      toast.error(err.response?.data?.detail || 'Failed to reject order.');
     },
   });
 
-  // Mark Completed Mutation
-  const completeMutation = useMutation({
-    mutationFn: async (orderId: string) => {
-      return await orderService.updateOrderStatus(orderId, 'completed');
+  // Generic Status Transition Mutation
+  const statusMutation = useMutation({
+    mutationFn: async ({ orderId, status, note }: { orderId: string; status: OrderStatus; note?: string }) => {
+      return await orderService.updateOrderStatus(orderId, status, note);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['incoming-orders'] });
       queryClient.invalidateQueries({ queryKey: ['order-stats'] });
-      toast.success('Order marked as Completed!');
+      toast.success(`Order moved to ${variables.status.replace('_', ' ')}!`);
       setIsDetailModalOpen(false);
+      setIsShipModalOpen(false);
+      setShipNote('');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.detail || 'Failed to update order status');
     },
   });
 
   const handleOpenAccept = (order: PurchaseOrder) => {
     setSelectedOrder(order);
-    setAcceptNote('Prices confirmed as quoted. Will deliver on schedule.');
+    setAcceptNote('Order confirmed and queued for fulfillment.');
     setIsAcceptModalOpen(true);
   };
 
@@ -209,476 +187,337 @@ export const IncomingOrders: React.FC = () => {
     setIsRejectModalOpen(true);
   };
 
+  const handleOpenShip = (order: PurchaseOrder) => {
+    setSelectedOrder(order);
+    setShipNote('Dispatched via regional freight logistics.');
+    setIsShipModalOpen(true);
+  };
+
   const handleOpenDetail = (order: PurchaseOrder) => {
     setSelectedOrder(order);
     setIsDetailModalOpen(true);
   };
 
+  const tabs = [
+    { id: 'all', label: 'All Orders', count: stats?.total_orders },
+    { id: 'pending', label: 'Pending', count: stats?.pending_orders },
+    { id: 'accepted', label: 'Accepted', count: stats?.accepted_orders },
+    { id: 'processing', label: 'Processing', count: stats?.processing_orders ?? stats?.in_progress_orders },
+    { id: 'packed', label: 'Packed', count: stats?.packed_orders },
+    { id: 'shipped', label: 'Shipped', count: stats?.shipped_orders },
+    { id: 'delivered', label: 'Delivered', count: stats?.delivered_orders },
+    { id: 'completed', label: 'Completed', count: stats?.completed_orders },
+    { id: 'rejected', label: 'Rejected', count: stats?.rejected_orders },
+    { id: 'cancelled', label: 'Cancelled', count: stats?.cancelled_orders },
+  ];
+
   return (
     <PageWrapper>
-      <div className="space-y-6 max-w-6xl mx-auto pb-16">
-        {/* Page Header */}
+      <div className="space-y-6 max-w-7xl mx-auto pb-16">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                Incoming Retail Purchase Orders
+                Incoming Retail Orders & Fulfillment
               </h1>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xxs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/50">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Stream
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xxs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Fulfillment
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Purchase requests from retail vendors that require your immediate response
+              Review, accept, pack, and ship procurement orders from your retail vendor network
             </p>
           </div>
         </div>
 
-        {/* Component A: Stats Bar */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Total Received */}
-          <Card className="border-slate-200 dark:border-[#1e293b] hover:shadow-xs transition-shadow">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xxs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  Total Received
-                </p>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">
-                  {stats?.total_orders ?? orders.length}
-                </h3>
-                <p className="text-xxs text-slate-400 mt-0.5">All time requests</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-[#151d2e] text-slate-600 dark:text-slate-300 flex items-center justify-center">
-                <Package size={20} />
-              </div>
-            </CardContent>
+          <Card className="p-4 border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md">
+            <p className="text-xxs font-bold text-slate-500 uppercase tracking-wider">Total Received</p>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1 font-mono">
+              {stats?.total_orders ?? orders.length}
+            </h3>
+            <p className="text-xxs text-slate-400 mt-0.5">All-time order requests</p>
           </Card>
-
-          {/* New Requests (Amber + Pulse) */}
-          <Card className="border-amber-200 dark:border-amber-900/40 bg-amber-50/20 dark:bg-amber-950/10 hover:shadow-xs transition-shadow">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-                  <p className="text-xxs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                    New Requests
-                  </p>
-                </div>
-                <h3 className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-0.5 transition-all">
-                  {stats?.pending_orders ?? 0}
-                </h3>
-                <p className="text-xxs font-medium text-amber-600/80 dark:text-amber-400/80 mt-0.5">Requires response</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-xs">
-                <Bell size={20} className="animate-bounce" />
-              </div>
-            </CardContent>
+          <Card className="p-4 border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md">
+            <p className="text-xxs font-bold text-amber-500 uppercase tracking-wider">Awaiting Response</p>
+            <h3 className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 font-mono">
+              {stats?.pending_orders ?? 0}
+            </h3>
+            <p className="text-xxs text-slate-400 mt-0.5">Pending accept/reject</p>
           </Card>
-
-          {/* Accepted */}
-          <Card className="border-slate-200 dark:border-[#1e293b] hover:shadow-xs transition-shadow">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xxs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
-                  Accepted
-                </p>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">
-                  {stats?.accepted_orders ?? 0}
-                </h3>
-                <p className="text-xxs text-blue-600 dark:text-blue-400 font-medium mt-0.5">In fulfillment</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <CheckCircle2 size={20} />
-              </div>
-            </CardContent>
+          <Card className="p-4 border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md">
+            <p className="text-xxs font-bold text-blue-500 uppercase tracking-wider">In Fulfillment</p>
+            <h3 className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1 font-mono">
+              {(stats?.accepted_orders || 0) + (stats?.processing_orders || stats?.in_progress_orders || 0) + (stats?.packed_orders || 0)}
+            </h3>
+            <p className="text-xxs text-slate-400 mt-0.5">Accepted, processing & packed</p>
           </Card>
-
-          {/* Completed */}
-          <Card className="border-slate-200 dark:border-[#1e293b] hover:shadow-xs transition-shadow">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xxs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                  Completed
-                </p>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">
-                  {stats?.completed_orders ?? 0}
-                </h3>
-                <p className="text-xxs text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">Dispatched & delivered</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Truck size={20} />
-              </div>
-            </CardContent>
+          <Card className="p-4 border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md">
+            <p className="text-xxs font-bold text-emerald-500 uppercase tracking-wider">Settled & Completed</p>
+            <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
+              {stats?.completed_orders ?? 0}
+            </h3>
+            <p className="text-xxs text-slate-400 mt-0.5">Inventory fulfilled</p>
           </Card>
         </div>
 
-        {/* Component B: Filter Tabs & Search Controls */}
-        <div className="bg-white dark:bg-[#0c111d] rounded-xl border border-slate-200 dark:border-[#1e293b] p-3 sm:p-4 space-y-3 shadow-xs">
-          {/* Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-bold scrollbar-none">
-            {[
-              { id: 'all', label: 'All', count: stats?.total_orders },
-              { id: 'pending', label: 'Pending', count: stats?.pending_orders, badgeColor: 'amber' },
-              { id: 'accepted', label: 'Accepted', count: stats?.accepted_orders },
-              { id: 'in_progress', label: 'In Progress', count: stats?.in_progress_orders },
-              { id: 'completed', label: 'Completed', count: stats?.completed_orders },
-              { id: 'rejected', label: 'Rejected', count: stats?.rejected_orders },
-              { id: 'cancelled', label: 'Cancelled', count: stats?.cancelled_orders },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id;
-              const hasCount = tab.count !== undefined && tab.count !== null;
-              const isPendingBadge = tab.id === 'pending' && (tab.count || 0) > 0;
-
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : isPendingBadge
-                      ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800'
-                      : 'bg-slate-100/80 dark:bg-[#151d2e] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#1e293b]'
-                  }`}
-                >
-                  {isPendingBadge && <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />}
-                  <span>{tab.label}</span>
-                  {hasCount && (
-                    <span
-                      className={`px-1.5 py-0.2 rounded-full text-xxs font-mono ${
-                        isActive
-                          ? 'bg-white/20 text-white'
-                          : isPendingBadge
-                          ? 'bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100 font-bold'
-                          : 'bg-slate-200/80 dark:bg-[#1f2b42] text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+        {/* Filter Tabs & Search Bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+          {/* Scrollable Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === tab.id
+                    ? 'bg-slate-900 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                }`}
+              >
+                {tab.label}
+                {tab.count !== undefined && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      activeTab === tab.id
+                        ? 'bg-white/20 text-white dark:bg-slate-950/30 dark:text-slate-950'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
 
-          {/* Search & Sort Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-[#1e293b]">
-            <div className="relative w-full sm:w-80">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          {/* Search & Sort */}
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
-                placeholder="Search by vendor name or order title..."
+                type="text"
+                placeholder="Search vendor or PO#..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 text-xs h-9 bg-slate-50 dark:bg-[#111827]"
+                className="pl-9 text-xs h-9"
               />
             </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-              <span className="text-xxs font-bold text-slate-400 uppercase shrink-0">Sort:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="rounded-lg border border-slate-300 dark:border-[#1e293b] bg-white dark:bg-[#111827] px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-white cursor-pointer"
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="priority">Highest Priority</option>
-                <option value="value">Highest Value</option>
-              </select>
-            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="h-9 px-3 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="priority">High Priority</option>
+              <option value="value">Highest Value</option>
+            </select>
           </div>
         </div>
 
-        {/* Component C & D: Orders List */}
+        {/* Order Cards List */}
         <div className="space-y-4">
           {isLoading ? (
-            <div className="p-12 text-center text-xs text-slate-400 space-y-2">
-              <div className="h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p>Loading incoming orders stream...</p>
-            </div>
+            <div className="py-16 text-center text-slate-400 text-xs font-mono">Loading incoming orders...</div>
           ) : orders.length === 0 ? (
-            <div className="p-12 text-center rounded-xl border border-dashed border-slate-200 dark:border-[#1e293b] bg-white dark:bg-[#0c111d] space-y-3">
-              <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-[#151d2e] flex items-center justify-center text-slate-400 mx-auto">
-                <Package size={24} />
-              </div>
-              <h3 className="text-sm font-bold text-slate-800 dark:text-white">No incoming orders found</h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                {activeTab !== 'all'
-                  ? `No orders matching status "${activeTab}". Try switching tabs or clearing filters.`
-                  : 'No purchase orders have been submitted by retail vendors yet.'}
+            <div className="py-16 text-center bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-8">
+              <Package className="w-10 h-10 text-slate-400 mx-auto mb-2 opacity-60" />
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No incoming orders found</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {activeTab !== 'all' ? `No orders in stage "${activeTab}".` : 'No orders from retail vendors yet.'}
               </p>
             </div>
           ) : (
             orders.map((ord) => {
-              const isPending = ord.status === 'pending';
-              const isAccepted = ord.status === 'accepted';
-              const isInProgress = ord.status === 'in_progress';
-              const isCompleted = ord.status === 'completed';
-              const isRejected = ord.status === 'rejected';
-              const isCancelled = ord.status === 'cancelled';
-              const isJustArrived = newOrderIds.has(ord.raw_id);
-
-              // Border and background classes based on state
-              const borderClass = isPending
-                ? 'border-l-4 border-l-amber-500 bg-amber-500/[0.02] dark:bg-amber-500/[0.04]'
-                : isAccepted
-                ? 'border-l-4 border-l-blue-500 bg-blue-500/[0.02]'
-                : isInProgress
-                ? 'border-l-4 border-l-orange-500 bg-orange-500/[0.02]'
-                : isCompleted
-                ? 'border-l-4 border-l-emerald-500 bg-emerald-500/[0.02]'
-                : isRejected
-                ? 'border-l-4 border-l-red-500 bg-red-500/[0.02]'
-                : 'border-l-4 border-l-slate-400 bg-slate-50/50';
+              const statusNorm = ord.status.toLowerCase();
+              const isPending = statusNorm === 'pending';
+              const isAccepted = statusNorm === 'accepted';
+              const isProcessing = statusNorm === 'processing' || statusNorm === 'in_progress';
+              const isPacked = statusNorm === 'packed';
+              const isShipped = statusNorm === 'shipped';
 
               return (
-                <div
-                  key={ord.raw_id || ord.id}
-                  className={`rounded-xl border border-slate-200 dark:border-[#1e293b] ${borderClass} p-4 sm:p-5 transition-all hover:shadow-sm space-y-4`}
+                <Card
+                  key={ord.raw_id}
+                  className="p-5 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 hover:border-emerald-500/30 transition-all rounded-2xl"
                 >
-                  {/* Card Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {isPending && <span className="h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse" />}
-                      {isAccepted && <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />}
-                      {isCompleted && <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />}
-                      {isRejected && <span className="h-2.5 w-2.5 rounded-full bg-red-500" />}
-
-                      <span className="font-mono text-xs font-extrabold text-slate-900 dark:text-white">
-                        {ord.id}
-                      </span>
-
-                      <Badge
-                        variant={
-                          isPending
-                            ? 'warning'
-                            : isAccepted
-                            ? 'primary'
-                            : isInProgress
-                            ? 'accent'
-                            : isCompleted
-                            ? 'success'
-                            : isRejected
-                            ? 'destructive'
-                            : 'secondary'
-                        }
-                        className="text-xxs uppercase font-extrabold tracking-wider"
-                      >
-                        {isPending && '🟡 PENDING'}
-                        {isAccepted && '✅ ACCEPTED'}
-                        {isInProgress && '🔄 IN PROGRESS'}
-                        {isCompleted && '✅ COMPLETED'}
-                        {isRejected && '❌ REJECTED'}
-                        {isCancelled && 'CANCELLED'}
-                      </Badge>
-
-                      {isJustArrived && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xxs font-black bg-amber-500 text-white animate-bounce shadow-xs">
-                          <Sparkles size={11} /> ✨ NEW
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    {/* Left: ID & Vendor info */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400">
+                          {ord.id}
                         </span>
-                      )}
-                    </div>
-
-                    <div className="text-xxs text-slate-500 dark:text-slate-400 flex items-center gap-1 font-semibold">
-                      <Clock size={12} className="text-slate-400" />
-                      {getRelativeTime(ord.created_at)}
-                    </div>
-                  </div>
-
-                  {/* Order Title */}
-                  <div>
-                    <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
-                      {ord.title}
-                    </h2>
-                  </div>
-
-                  {/* Details Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-1 text-xs">
-                    {/* FROM Vendor Card */}
-                    <div className="p-3 rounded-lg bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-[#1e293b] flex items-start gap-2.5">
-                      <div className="h-9 w-9 rounded-lg bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center justify-center shrink-0">
-                        {ord.vendor?.company_name?.slice(0, 2).toUpperCase() || 'VN'}
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-xxs font-extrabold uppercase tracking-wider text-slate-400 block">
-                          FROM (Vendor)
-                        </span>
-                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                          {ord.vendor?.company_name}
-                        </p>
-                        <p className="text-xxs text-slate-500 dark:text-slate-400 flex items-center gap-0.5 truncate">
-                          <MapPin size={10} className="shrink-0" /> {ord.vendor?.city || 'Coimbatore'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Priority & Delivery Date */}
-                    <div className="p-3 rounded-lg bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-[#1e293b]">
-                      <span className="text-xxs font-extrabold uppercase tracking-wider text-slate-400 block">
-                        Priority & Delivery
-                      </span>
-                      <div className="flex items-center gap-1.5 mt-1">
                         <Badge
                           variant={
-                            ord.priority === 'urgent'
-                              ? 'destructive'
-                              : ord.priority === 'high'
-                              ? 'accent'
-                              : ord.priority === 'medium'
+                            statusNorm === 'pending'
+                              ? 'warning'
+                              : statusNorm === 'accepted'
                               ? 'primary'
+                              : statusNorm === 'processing' || statusNorm === 'in_progress'
+                              ? 'accent'
+                              : statusNorm === 'packed'
+                              ? 'primary'
+                              : statusNorm === 'shipped'
+                              ? 'accent'
+                              : statusNorm === 'completed'
+                              ? 'success'
+                              : statusNorm === 'rejected'
+                              ? 'destructive'
                               : 'secondary'
                           }
-                          className="text-xxs uppercase font-bold"
+                          className="text-[10px] uppercase font-bold"
                         >
-                          ● {ord.priority}
+                          ● {statusNorm.replace('_', ' ')}
                         </Badge>
+                        <Badge variant="outline" className="text-[10px] uppercase font-semibold">
+                          {ord.priority}
+                        </Badge>
+                        <span className="text-[11px] text-slate-400 ml-1 font-mono">
+                          {getRelativeTime(ord.created_at)}
+                        </span>
                       </div>
-                      <p className="text-xxs text-slate-600 dark:text-slate-300 font-semibold mt-1 flex items-center gap-1">
-                        <Calendar size={11} className="text-blue-500" />
-                        {ord.delivery_date
-                          ? new Date(ord.delivery_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
-                          : 'Standard Delivery'}
-                      </p>
+
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">{ord.title}</h3>
+
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
+                        <span className="flex items-center gap-1.5">
+                          <Building className="w-3.5 h-3.5 text-slate-500" />
+                          <strong className="text-slate-900 dark:text-slate-200">
+                            {ord.vendor?.company_name || 'Vendor Company'}
+                          </strong>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                          {ord.vendor?.city || 'Coimbatore'}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          Delivery: {ord.delivery_date ? new Date(ord.delivery_date).toLocaleDateString() : 'Standard'}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Item Count & Preview */}
-                    <div className="p-3 rounded-lg bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-[#1e293b]">
-                      <span className="text-xxs font-extrabold uppercase tracking-wider text-slate-400 block">
-                        Item Count
-                      </span>
-                      <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
-                        {ord.item_count} items requested
-                      </p>
-                      <p className="text-xxs text-slate-500 dark:text-slate-400 truncate mt-0.5" title={ord.item_preview}>
-                        {ord.item_preview}
-                      </p>
+                    {/* Middle: Items & Total */}
+                    <div className="flex items-center gap-6 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 pt-3 lg:pt-0 lg:pl-6">
+                      <div>
+                        <span className="text-xxs font-bold text-slate-400 uppercase tracking-wider block">Items</span>
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          {ord.item_count} {ord.item_count === 1 ? 'item' : 'items'}
+                        </span>
+                        <p className="text-[11px] text-slate-500 truncate max-w-[180px]" title={ord.item_preview}>
+                          {ord.item_preview}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-xxs font-bold text-slate-400 uppercase tracking-wider block">Total</span>
+                        <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                          {ord.formatted_total}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Estimated Value */}
-                    <div className="p-3 rounded-lg bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-[#1e293b]">
-                      <span className="text-xxs font-extrabold uppercase tracking-wider text-slate-400 block">
-                        Estimated Value
-                      </span>
-                      <p className="text-base font-black text-blue-600 dark:text-blue-400 mt-0.5 font-mono">
-                        {ord.formatted_total || `₹${Number(ord.estimated_value || 0).toLocaleString('en-IN')}`}
-                      </p>
-                      <p className="text-xxs text-slate-400">Total payable estimate</p>
-                    </div>
-                  </div>
+                    {/* Right: Action Buttons */}
+                    <div className="flex items-center gap-2 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-200 dark:border-slate-800">
+                      <Button variant="outline" size="sm" onClick={() => handleOpenDetail(ord)} className="text-xs">
+                        <Eye className="w-3.5 h-3.5 mr-1" /> Details
+                      </Button>
 
-                  {/* Description Preview if present */}
-                  {ord.description && (
-                    <div className="text-xs text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-[#111827]/60 p-2.5 rounded-lg border border-slate-200/60 dark:border-[#1e293b] italic line-clamp-2">
-                      "{ord.description}"
-                    </div>
-                  )}
-
-                  {/* Response note if accepted or rejected */}
-                  {ord.supplier_response && (
-                    <div
-                      className={`text-xs p-2.5 rounded-lg border flex items-start gap-1.5 ${
-                        isAccepted
-                          ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-900 dark:text-blue-200'
-                          : isRejected
-                          ? 'bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900 text-red-900 dark:text-red-200'
-                          : 'bg-slate-100 dark:bg-[#151d2e] border-slate-200 text-slate-700'
-                      }`}
-                    >
-                      <span className="font-bold shrink-0">Your Response:</span>
-                      <span>"{ord.supplier_response}"</span>
-                    </div>
-                  )}
-
-                  {/* Card Actions Bar */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-[#1e293b]/80">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenDetail(ord)}
-                      className="text-xs font-semibold"
-                    >
-                      <Eye size={14} className="mr-1.5" /> View Details
-                    </Button>
-
-                    <div className="flex items-center gap-2">
                       {isPending && (
                         <>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleOpenReject(ord)}
-                            className="text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 border-red-200 dark:border-red-900/50 cursor-pointer"
+                            className="text-xs text-rose-600 border-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                           >
-                            <X size={14} className="mr-1" /> Reject
+                            <X className="w-3.5 h-3.5 mr-1" /> Reject
                           </Button>
-
                           <Button
                             size="sm"
                             onClick={() => handleOpenAccept(ord)}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer px-4"
+                            className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                           >
-                            <Check size={14} className="mr-1" /> Accept Order
+                            <Check className="w-3.5 h-3.5 mr-1" /> Accept
                           </Button>
                         </>
                       )}
 
-                      {isInProgress && (
+                      {isAccepted && (
                         <Button
                           size="sm"
-                          onClick={() => completeMutation.mutate(ord.raw_id)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+                          onClick={() => statusMutation.mutate({ orderId: ord.raw_id, status: 'processing' })}
+                          className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                          disabled={statusMutation.isPending}
                         >
-                          <CheckCircle2 size={14} className="mr-1" /> Mark Completed
+                          <Package className="w-3.5 h-3.5 mr-1" /> Start Processing
+                        </Button>
+                      )}
+
+                      {isProcessing && (
+                        <Button
+                          size="sm"
+                          onClick={() => statusMutation.mutate({ orderId: ord.raw_id, status: 'packed' })}
+                          className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+                          disabled={statusMutation.isPending}
+                        >
+                          <Box className="w-3.5 h-3.5 mr-1" /> Mark Packed
+                        </Button>
+                      )}
+
+                      {isPacked && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleOpenShip(ord)}
+                          className="text-xs bg-teal-600 hover:bg-teal-700 text-white font-bold"
+                        >
+                          <Truck className="w-3.5 h-3.5 mr-1" /> Mark Shipped
                         </Button>
                       )}
                     </div>
                   </div>
-                </div>
+                </Card>
               );
             })
           )}
         </div>
 
-        {/* MODAL E: Accept Order Request Modal */}
+        {/* Accept Modal */}
         <Dialog
           isOpen={isAcceptModalOpen}
           onClose={() => setIsAcceptModalOpen(false)}
-          title="Accept Order Request"
-          description="Confirm order acceptance and notify the retail vendor"
+          title="Accept Purchase Order"
+          description="Confirm order acceptance to notify retail vendor"
           size="md"
         >
           {selectedOrder && (
             <div className="space-y-4 pt-1">
-              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50">
-                <span className="text-xxs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block">
-                  You're accepting:
-                </span>
-                <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">"{selectedOrder.title}"</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  from {selectedOrder.vendor?.company_name} ({selectedOrder.vendor?.city}) • Value:{' '}
-                  <span className="font-bold text-blue-600">{selectedOrder.formatted_total}</span>
+              <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                <span className="text-xxs font-bold text-emerald-400 uppercase tracking-wider block">Accepting:</span>
+                <p className="text-sm font-bold text-white mt-0.5">{selectedOrder.title}</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Vendor: {selectedOrder.vendor?.company_name} • Total: <strong className="text-emerald-400">{selectedOrder.formatted_total}</strong>
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-800 dark:text-[#f1f5f9] mb-1">
-                  Response Note to Vendor (Optional)
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Confirmation Note to Vendor (Optional)
                 </label>
                 <textarea
                   rows={3}
                   value={acceptNote}
                   onChange={(e) => setAcceptNote(e.target.value)}
-                  placeholder="e.g. We can deliver by Aug 14th morning. Prices confirmed as quoted."
-                  className="w-full rounded-lg border border-slate-300 dark:border-[#1e293b] bg-white dark:bg-[#111827] p-2.5 text-xs text-slate-900 dark:text-[#f1f5f9] focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  placeholder="e.g. Confirmed. We will pack and dispatch on schedule."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
-              <p className="text-xxs text-slate-500 dark:text-slate-400">
-                By accepting, the vendor will be notified instantly via WebSocket and the order status will change to{' '}
-                <span className="font-bold text-emerald-600">"Accepted"</span>.
-              </p>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-[#1e293b]">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
                 <Button variant="outline" size="sm" onClick={() => setIsAcceptModalOpen(false)}>
                   Cancel
                 </Button>
@@ -686,49 +525,47 @@ export const IncomingOrders: React.FC = () => {
                   size="sm"
                   onClick={() => acceptMutation.mutate({ orderId: selectedOrder.raw_id, note: acceptNote })}
                   disabled={acceptMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 cursor-pointer"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4"
                 >
-                  {acceptMutation.isPending ? 'Confirming...' : 'Confirm & Accept ✓'}
+                  {acceptMutation.isPending ? 'Confirming...' : 'Confirm Acceptance ✓'}
                 </Button>
               </div>
             </div>
           )}
         </Dialog>
 
-        {/* MODAL F: Reject Order Request Modal */}
+        {/* Reject Modal */}
         <Dialog
           isOpen={isRejectModalOpen}
           onClose={() => setIsRejectModalOpen(false)}
-          title="Reject Order Request"
-          description="Provide a reason to inform the vendor"
+          title="Reject Purchase Order"
+          description="Provide a reason to inform the vendor and release reserved inventory"
           size="md"
         >
           {selectedOrder && (
             <div className="space-y-4 pt-1">
-              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50">
-                <span className="text-xxs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider block">
-                  You're rejecting:
-                </span>
-                <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">"{selectedOrder.title}"</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  from {selectedOrder.vendor?.company_name} ({selectedOrder.vendor?.city})
+              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30">
+                <span className="text-xxs font-bold text-rose-400 uppercase tracking-wider block">Declining:</span>
+                <p className="text-sm font-bold text-white mt-0.5">{selectedOrder.title}</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Vendor: {selectedOrder.vendor?.company_name}
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-800 dark:text-[#f1f5f9] mb-1">
-                  Reason for Rejection <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Reason for Rejection <span className="text-rose-400">*</span>
                 </label>
                 <textarea
                   rows={3}
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="e.g. Currently out of stock on tomatoes and onions. Can fulfill next week."
-                  className="w-full rounded-lg border border-slate-300 dark:border-[#1e293b] bg-white dark:bg-[#111827] p-2.5 text-xs text-slate-900 dark:text-[#f1f5f9] focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                  placeholder="e.g. Currently out of stock on requested batch. Restocking next week."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-[#1e293b]">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
                 <Button variant="outline" size="sm" onClick={() => setIsRejectModalOpen(false)}>
                   Cancel
                 </Button>
@@ -742,7 +579,7 @@ export const IncomingOrders: React.FC = () => {
                     rejectMutation.mutate({ orderId: selectedOrder.raw_id, reason: rejectReason });
                   }}
                   disabled={rejectMutation.isPending}
-                  className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 cursor-pointer"
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4"
                 >
                   {rejectMutation.isPending ? 'Rejecting...' : 'Confirm Rejection ✕'}
                 </Button>
@@ -751,7 +588,53 @@ export const IncomingOrders: React.FC = () => {
           )}
         </Dialog>
 
-        {/* MODAL G: Order Detail Page / Modal */}
+        {/* Ship Modal */}
+        <Dialog
+          isOpen={isShipModalOpen}
+          onClose={() => setIsShipModalOpen(false)}
+          title="Mark Order as Shipped"
+          description="Confirm order dispatch and shipping notes for the vendor"
+          size="md"
+        >
+          {selectedOrder && (
+            <div className="space-y-4 pt-1">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Dispatch / Carrier Notes (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={shipNote}
+                  onChange={(e) => setShipNote(e.target.value)}
+                  placeholder="e.g. Dispatched via Express Logistics Truck #TN38-9988. Expected tomorrow morning."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <Button variant="outline" size="sm" onClick={() => setIsShipModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    statusMutation.mutate({
+                      orderId: selectedOrder.raw_id,
+                      status: 'shipped',
+                      note: shipNote,
+                    })
+                  }
+                  disabled={statusMutation.isPending}
+                  className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs px-4"
+                >
+                  {statusMutation.isPending ? 'Dispatching...' : 'Confirm Shipment 🚚'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </Dialog>
+
+        {/* Order Detail Modal with Timeline & Historical Snapshots */}
         <Dialog
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
@@ -761,186 +644,89 @@ export const IncomingOrders: React.FC = () => {
         >
           {selectedOrder && (
             <div className="space-y-6 pt-1">
-              {/* Header Status Bar */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#151d2e] border border-slate-200/60 dark:border-[#1e293b]">
-                <div>
-                  <span className="text-xxs font-bold text-slate-400 uppercase tracking-wider block">Current Status</span>
-                  <Badge
-                    variant={
-                      selectedOrder.status === 'pending'
-                        ? 'warning'
-                        : selectedOrder.status === 'accepted'
-                        ? 'primary'
-                        : selectedOrder.status === 'in_progress'
-                        ? 'accent'
-                        : selectedOrder.status === 'completed'
-                        ? 'success'
-                        : selectedOrder.status === 'rejected'
-                        ? 'destructive'
-                        : 'secondary'
-                    }
-                    className="text-xs uppercase font-extrabold mt-0.5"
-                  >
-                    ● {selectedOrder.status}
-                  </Badge>
-                </div>
-                <div className="text-right">
-                  <span className="text-xxs font-bold text-slate-400 uppercase tracking-wider block">Priority</span>
-                  <Badge variant="outline" className="text-xs uppercase font-bold mt-0.5">
-                    {selectedOrder.priority} Priority
-                  </Badge>
-                </div>
-              </div>
+              {/* Order Timeline Stepper & History */}
+              <OrderTimeline
+                currentStatus={selectedOrder.status}
+                timeline={selectedOrder.timeline}
+                createdDate={selectedOrder.created_at}
+              />
 
-              {/* Two Parties Cards (FROM & TO) */}
+              {/* Vendor & Delivery Information */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* FROM (Vendor) */}
-                <div className="p-4 rounded-xl border border-slate-200 dark:border-[#1e293b] bg-white dark:bg-[#0c111d] space-y-2">
+                <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 space-y-2">
                   <span className="text-xxs font-extrabold uppercase tracking-wider text-slate-400 block">
-                    FROM (Vendor)
+                    Vendor Company
                   </span>
                   <div className="flex items-center gap-2.5">
-                    <div className="h-10 w-10 rounded-xl bg-blue-600/10 text-blue-600 font-bold text-xs flex items-center justify-center">
+                    <div className="h-9 w-9 rounded-xl bg-blue-600/20 text-blue-400 font-bold text-xs flex items-center justify-center">
                       {selectedOrder.vendor?.company_name?.slice(0, 2).toUpperCase() || 'VN'}
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                        {selectedOrder.vendor?.company_name}
-                      </h4>
-                      <p className="text-xxs text-slate-500">Retail Supermarket Vendor</p>
+                      <h4 className="text-xs font-bold text-slate-200">{selectedOrder.vendor?.company_name}</h4>
+                      <p className="text-xxs text-slate-400">{selectedOrder.vendor?.full_name}</p>
                     </div>
                   </div>
-                  <div className="pt-2 text-xs space-y-1 text-slate-600 dark:text-slate-300">
-                    <p className="flex items-center gap-1.5">
-                      <MapPin size={12} className="text-slate-400 shrink-0" />
-                      {selectedOrder.vendor?.city}, {selectedOrder.vendor?.state}
-                    </p>
-                    <p className="flex items-center gap-1.5">
-                      <Phone size={12} className="text-slate-400 shrink-0" />
-                      {selectedOrder.vendor?.phone || '+91 9876543210'}
-                    </p>
-                    <p className="flex items-center gap-1.5">
-                      <Mail size={12} className="text-slate-400 shrink-0" />
-                      {selectedOrder.vendor?.email || 'vendor@email.com'}
-                    </p>
-                  </div>
+                  <p className="text-xxs text-slate-400 flex items-center gap-1 mt-2">
+                    <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
+                    {selectedOrder.vendor?.city}, {selectedOrder.vendor?.state}
+                  </p>
                 </div>
 
-                {/* TO (Supplier) */}
-                <div className="p-4 rounded-xl border border-slate-200 dark:border-[#1e293b] bg-white dark:bg-[#0c111d] space-y-2">
+                <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 space-y-2">
                   <span className="text-xxs font-extrabold uppercase tracking-wider text-slate-400 block">
-                    TO (You - Supplier)
+                    Delivery Specifications
                   </span>
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-10 w-10 rounded-xl bg-emerald-600/10 text-emerald-600 font-bold text-xs flex items-center justify-center">
-                      {selectedOrder.supplier?.company_name?.slice(0, 2).toUpperCase() || 'SP'}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                        {selectedOrder.supplier?.company_name}
-                      </h4>
-                      <p className="text-xxs text-slate-500">{selectedOrder.supplier?.business_type}</p>
-                    </div>
-                  </div>
-                  <div className="pt-2 text-xs space-y-1 text-slate-600 dark:text-slate-300">
-                    <p className="flex items-center gap-1.5">
-                      <MapPin size={12} className="text-slate-400 shrink-0" />
-                      {selectedOrder.supplier?.city}, {selectedOrder.supplier?.state}
-                    </p>
-                    <p className="flex items-center gap-1.5">
-                      <ShieldCheck size={12} className="text-emerald-500 shrink-0" />
-                      GST: {selectedOrder.supplier?.gst_number || '33AABCU9603R1ZM'}
-                    </p>
-                  </div>
+                  <p className="text-xs text-slate-300">
+                    <strong className="text-slate-400">Target Date:</strong>{' '}
+                    {selectedOrder.delivery_date
+                      ? new Date(selectedOrder.delivery_date).toLocaleDateString()
+                      : 'Standard delivery'}
+                  </p>
+                  <p className="text-xxs text-slate-400 leading-relaxed">
+                    <strong className="text-slate-400">Address:</strong> {selectedOrder.delivery_address}
+                  </p>
                 </div>
               </div>
 
-              {/* Order Details Description */}
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-[#1e293b] bg-white dark:bg-[#0c111d] space-y-2 text-xs">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-xxs font-bold text-slate-400 uppercase tracking-wider block">Title</span>
-                    <span className="font-bold text-slate-900 dark:text-white block mt-0.5">{selectedOrder.title}</span>
-                  </div>
-                  <div>
-                    <span className="text-xxs font-bold text-slate-400 uppercase tracking-wider block">Delivery Date</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
-                      {selectedOrder.delivery_date
-                        ? new Date(selectedOrder.delivery_date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
-                        : 'Standard delivery'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 dark:border-[#1e293b]">
-                  <span className="text-xxs font-bold text-slate-400 uppercase tracking-wider block">Delivery Address</span>
-                  <span className="text-slate-700 dark:text-slate-300 mt-0.5 block">
-                    {selectedOrder.delivery_address || selectedOrder.vendor?.address_line}
-                  </span>
-                </div>
-
-                {selectedOrder.description && (
-                  <div className="pt-2 border-t border-slate-100 dark:border-[#1e293b]">
-                    <span className="text-xxs font-bold text-slate-400 uppercase tracking-wider block">Description Notes</span>
-                    <p className="text-slate-600 dark:text-slate-300 italic mt-0.5">"{selectedOrder.description}"</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Items Ordered Table */}
-              <div className="rounded-xl border border-slate-200 dark:border-[#1e293b] overflow-hidden text-xs">
-                <div className="p-3 bg-slate-50 dark:bg-[#151d2e] border-b border-slate-200 dark:border-[#1e293b] font-bold text-slate-900 dark:text-white">
-                  Items Ordered ({selectedOrder.items?.length || 1})
+              {/* Historical Order Items Table */}
+              <div className="rounded-xl border border-slate-800 overflow-hidden text-xs">
+                <div className="p-3 bg-slate-900 border-b border-slate-800 font-bold text-slate-200 flex justify-between">
+                  <span>Purchased Items ({selectedOrder.items?.length || 1})</span>
+                  <span className="text-xxs font-mono text-slate-400">Historical Snapshot</span>
                 </div>
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-100 dark:border-[#1e293b] text-xxs font-bold text-slate-400 uppercase bg-slate-50/50 dark:bg-[#151d2e]/50">
+                    <tr className="border-b border-slate-800/80 text-[10px] font-bold text-slate-400 uppercase bg-slate-950/80">
                       <th className="p-3 w-10">#</th>
-                      <th className="p-3">Product</th>
-                      <th className="p-3 text-center">Qty</th>
+                      <th className="p-3">Product Name</th>
+                      <th className="p-3 text-center">Quantity</th>
                       <th className="p-3 text-center">Unit</th>
-                      <th className="p-3 text-right">Est. Price</th>
-                      <th className="p-3 text-right">Total</th>
+                      <th className="p-3 text-right">Unit Price</th>
+                      <th className="p-3 text-right">Subtotal</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-[#1e293b]">
-                    {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                      selectedOrder.items.map((item, idx) => {
-                        const lineTotal = (item.quantity || 1) * (item.estimated_price || 0);
-                        return (
-                          <tr key={idx}>
-                            <td className="p-3 font-mono font-bold text-slate-400 text-center">{idx + 1}</td>
-                            <td className="p-3 font-semibold text-slate-900 dark:text-white">{item.product_name}</td>
-                            <td className="p-3 text-center font-mono">{item.quantity}</td>
-                            <td className="p-3 text-center text-slate-500">{item.unit || 'kg'}</td>
-                            <td className="p-3 text-right font-mono text-slate-600 dark:text-slate-400">
-                              ₹{Number(item.estimated_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </td>
-                            <td className="p-3 text-right font-mono font-bold text-slate-900 dark:text-white">
-                              ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td className="p-3 text-center font-mono font-bold text-slate-400">1</td>
-                        <td className="p-3 font-semibold">{selectedOrder.title}</td>
-                        <td className="p-3 text-center font-mono">{selectedOrder.quantity}</td>
-                        <td className="p-3 text-center">{selectedOrder.unit || 'units'}</td>
-                        <td className="p-3 text-right font-mono">
-                          ₹{Number(selectedOrder.estimated_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  <tbody className="divide-y divide-slate-800/60">
+                    {selectedOrder.items?.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-slate-900/40">
+                        <td className="p-3 font-mono font-bold text-slate-500 text-center">{idx + 1}</td>
+                        <td className="p-3 font-semibold text-slate-200">
+                          {item.product_name_snapshot || item.product_name}
                         </td>
-                        <td className="p-3 text-right font-mono font-bold">
-                          ₹{Number(selectedOrder.estimated_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <td className="p-3 text-center font-mono">{item.quantity}</td>
+                        <td className="p-3 text-center text-slate-400">{item.unit || 'units'}</td>
+                        <td className="p-3 text-right font-mono text-slate-400">
+                          ₹{Number(item.unit_price || item.estimated_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="p-3 text-right font-mono font-bold text-emerald-400">
+                          ₹{Number(item.subtotal || (item.quantity * (item.unit_price || item.estimated_price || 0))).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
-                    )}
-                    <tr className="bg-slate-50 dark:bg-[#151d2e] font-bold border-t border-slate-200 dark:border-[#1e293b]">
-                      <td colSpan={5} className="p-3 text-right uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                        TOTAL
+                    ))}
+                    <tr className="bg-slate-900/80 font-bold border-t border-slate-800">
+                      <td colSpan={5} className="p-3 text-right uppercase tracking-wider text-slate-400 text-xs">
+                        TOTAL ESTIMATE
                       </td>
-                      <td className="p-3 text-right text-sm font-black text-blue-600 dark:text-blue-400 font-mono">
+                      <td className="p-3 text-right text-sm font-black text-emerald-400 font-mono">
                         {selectedOrder.formatted_total}
                       </td>
                     </tr>
@@ -948,98 +734,82 @@ export const IncomingOrders: React.FC = () => {
                 </table>
               </div>
 
-              {/* Timeline */}
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-[#1e293b] bg-white dark:bg-[#0c111d] space-y-3 text-xs">
-                <h4 className="font-bold text-slate-900 dark:text-white">Order Timeline</h4>
-                <div className="space-y-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-[#1e293b]">
-                  <div className="flex items-start gap-3 relative pl-6">
-                    <span className="absolute left-0 top-1 h-4 w-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-xxs">
-                      ✓
-                    </span>
-                    <div>
-                      <p className="font-bold text-slate-900 dark:text-white">📤 Order Created</p>
-                      <p className="text-xxs text-slate-400">
-                        {new Date(selectedOrder.created_at).toLocaleString()} by {selectedOrder.vendor?.company_name}
-                      </p>
-                    </div>
-                  </div>
-
-                  {selectedOrder.status === 'pending' ? (
-                    <div className="flex items-start gap-3 relative pl-6">
-                      <span className="absolute left-0 top-1 h-4 w-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-xxs animate-pulse">
-                        ⏳
-                      </span>
-                      <div>
-                        <p className="font-bold text-amber-600">⏳ Awaiting Supplier Response</p>
-                        <p className="text-xxs text-slate-400">Pending review and confirmation</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-3 relative pl-6">
-                      <span
-                        className={`absolute left-0 top-1 h-4 w-4 rounded-full text-white flex items-center justify-center text-xxs ${
-                          selectedOrder.status === 'accepted' || selectedOrder.status === 'completed'
-                            ? 'bg-emerald-500'
-                            : selectedOrder.status === 'rejected'
-                            ? 'bg-red-500'
-                            : 'bg-blue-500'
-                        }`}
-                      >
-                        ✓
-                      </span>
-                      <div>
-                        <p className="font-bold text-slate-900 dark:text-white capitalize">
-                          {selectedOrder.status === 'accepted' && '✅ Order Accepted'}
-                          {selectedOrder.status === 'rejected' && '❌ Order Declined'}
-                          {selectedOrder.status === 'completed' && '✅ Order Completed'}
-                        </p>
-                        {selectedOrder.responded_at && (
-                          <p className="text-xxs text-slate-400">
-                            {new Date(selectedOrder.responded_at).toLocaleString()}
-                          </p>
-                        )}
-                        {selectedOrder.supplier_response && (
-                          <p className="text-xs text-slate-600 dark:text-slate-300 italic mt-0.5">
-                            "{selectedOrder.supplier_response}"
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Bottom Actions */}
-              <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-[#1e293b]">
+              {/* Action Buttons in Modal */}
+              <div className="flex items-center justify-between pt-4 border-t border-slate-800">
                 <Button variant="outline" size="sm" onClick={() => setIsDetailModalOpen(false)}>
                   Close
                 </Button>
 
-                {selectedOrder.status === 'pending' && (
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  {selectedOrder.status === 'pending' && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIsDetailModalOpen(false);
+                          handleOpenReject(selectedOrder);
+                        }}
+                        className="text-xs text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
+                      >
+                        Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setIsDetailModalOpen(false);
+                          handleOpenAccept(selectedOrder);
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4"
+                      >
+                        Accept Order
+                      </Button>
+                    </>
+                  )}
+
+                  {selectedOrder.status === 'accepted' && (
                     <Button
-                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        statusMutation.mutate({
+                          orderId: selectedOrder.raw_id,
+                          status: 'processing',
+                        })
+                      }
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs"
+                    >
+                      Start Processing
+                    </Button>
+                  )}
+
+                  {(selectedOrder.status === 'processing' || selectedOrder.status === 'in_progress') && (
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        statusMutation.mutate({
+                          orderId: selectedOrder.raw_id,
+                          status: 'packed',
+                        })
+                      }
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
+                    >
+                      Mark Packed
+                    </Button>
+                  )}
+
+                  {selectedOrder.status === 'packed' && (
+                    <Button
                       size="sm"
                       onClick={() => {
                         setIsDetailModalOpen(false);
-                        handleOpenReject(selectedOrder);
+                        handleOpenShip(selectedOrder);
                       }}
-                      className="text-xs font-semibold text-red-600 border-red-300"
+                      className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs"
                     >
-                      Reject
+                      Mark Shipped
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setIsDetailModalOpen(false);
-                        handleOpenAccept(selectedOrder);
-                      }}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4"
-                    >
-                      Accept Order
-                    </Button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           )}

@@ -7,12 +7,21 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.exceptions import FlowzaException
 from app.schemas.common import FlowzaErrorResponse, ErrorDetails
-from app.api.v1.routes import auth, users, profiles, suppliers, orders, products
+from app.api.v1.routes import auth, users, profiles, suppliers, orders, products, inventory, cart
 from app.core.websocket import router as ws_router
 from app.database.session import engine
 from app.database.base import Base
 # Import all models to ensure metadata registration
-from app.models import role, user, company, address, product, inventory, cart, order_request
+from app.models import (
+    role as _role,
+    user as _user,
+    company as _company,
+    address as _address,
+    product as _product,
+    inventory as _inventory_model,
+    cart as _cart_model,
+    order_request as _order_request_model,
+)
 
 # Ensure uploads directories exist before mounting static folder
 os.makedirs("uploads", exist_ok=True)
@@ -123,6 +132,8 @@ app.include_router(profiles.router, prefix="/api/v1/companies", tags=["Companies
 app.include_router(suppliers.router, prefix="/api/v1/suppliers", tags=["Suppliers"])
 app.include_router(orders.router, prefix="/api/v1/orders", tags=["Orders"])
 app.include_router(products.router, prefix="/api/v1/products", tags=["Products"])
+app.include_router(inventory.router, prefix="/api/v1/inventory", tags=["Inventory"])
+app.include_router(cart.router, prefix="/api/v1/carts", tags=["Cart & Checkout"])
 app.include_router(ws_router, tags=["WebSocket"])
 
 @app.get("/", tags=["Root"])

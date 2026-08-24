@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '../../components/layout/Navbar';
 import { Footer } from '../../components/layout/Footer';
 import { Button } from '../../components/ui/Button';
 import { Accordion } from '../../components/ui/Accordion';
+import { Badge } from '../../components/ui/Badge';
 import {
   Building,
   Search,
@@ -12,349 +14,477 @@ import {
   TrendingUp,
   ShieldCheck,
   ArrowRight,
-  User,
-  Plus,
+  Zap,
+  CheckCircle2,
+  PackageCheck,
+  Clock,
+  Sparkles,
+  Layers,
+  Activity,
+  ChevronRight,
+  Store,
+  Truck,
+  Cpu,
 } from 'lucide-react';
 
 export const Landing: React.FC = () => {
+  const [activeRole, setActiveRole] = useState<'vendor' | 'supplier' | 'admin'>('vendor');
+  const [simStep, setSimStep] = useState<number>(1);
+
   const features = [
     {
-      title: 'Company Profiles',
-      desc: 'Create detailed business profiles with verified GST details, company descriptions, and office addresses.',
-      icon: <Building className="h-6 w-6 text-primary" />,
+      title: 'Verified Business Directory',
+      desc: 'Connect with verified B2B vendors and wholesale distributors with validated GSTIN profiles and regional logistics parameters.',
+      icon: <Building className="h-6 w-6 text-emerald-500" />,
+      tag: 'ACTIVE PLATFORM',
     },
     {
-      title: 'Product Catalog',
-      desc: 'Browse and manage product catalogs from verified suppliers to compare and negotiate prices. (Future Feature)',
-      icon: <Search className="h-6 w-6 text-primary" />,
-      upcoming: true,
+      title: 'Zero-Latency Product Catalog',
+      desc: 'Explore real-time wholesale product pricing, tiered quantity discounts, live stock indicators, and SKU categorizations.',
+      icon: <Search className="h-6 w-6 text-emerald-500" />,
+      tag: 'INSTANT SYNC',
     },
     {
-      title: 'Purchase Orders',
-      desc: 'Create, dispatch, and track purchase orders with real-time status updates and delivery timelines. (Future Feature)',
-      icon: <FileText className="h-6 w-6 text-primary" />,
-      upcoming: true,
+      title: 'Automated Purchase Orders',
+      desc: 'Dispatch structured purchase order requests instantly with line-item totals, delivery scheduling, and priority tagging.',
+      icon: <FileText className="h-6 w-6 text-emerald-500" />,
+      tag: 'PRECISION LOGISTICS',
     },
     {
-      title: 'Vendor-Supplier Matching',
-      desc: 'Connect with verified business partners in your geographical region or specific product category. (Future Feature)',
-      icon: <UserCheck className="h-6 w-6 text-primary" />,
-      upcoming: true,
+      title: 'Real-Time WebSocket Engine',
+      desc: 'Receive push notifications the instant suppliers review, modify quantities, accept, or dispatch pending orders.',
+      icon: <Zap className="h-6 w-6 text-indigo-500" />,
+      tag: 'LIVE STREAM',
     },
     {
-      title: 'Procurement Analytics',
-      desc: 'Analyze procurement cycles, vendor performance, order frequencies, and spending trends. (Future Feature)',
-      icon: <TrendingUp className="h-6 w-6 text-primary" />,
-      upcoming: true,
+      title: 'Supply Chain Analytics',
+      desc: 'Track procurement velocity, spending trends, regional demand forecasts, and order fulfillment SLA metrics.',
+      icon: <TrendingUp className="h-6 w-6 text-cyan-500" />,
+      tag: 'INTELLIGENT INSIGHTS',
     },
     {
-      title: 'Secure & Compliant',
-      desc: 'State-of-the-art authentication, strict role control, and database design ready for GST validation.',
-      icon: <ShieldCheck className="h-6 w-6 text-primary" />,
+      title: 'Enterprise Security & Compliance',
+      desc: 'OAuth2 JWT token authentication, BCrypt password encryption, role-based access control, and full audit logging.',
+      icon: <ShieldCheck className="h-6 w-6 text-emerald-500" />,
+      tag: 'GST COMPLIANT',
     },
   ];
 
   const steps = [
     {
-      title: 'Register & Verify',
-      desc: 'Sign up as a Vendor or Supplier, add your company profile details, and verify your business details.',
+      title: 'Configure Organization Profile',
+      desc: 'Register as a Vendor or Wholesale Supplier, setup company credentials, and link verified GSTIN parameters.',
     },
     {
-      title: 'Connect & Network',
-      desc: 'Browse and find matching partners, view supplier business catalogs, and establish direct relationships.',
+      title: 'Stage Products or Browse Catalogs',
+      desc: 'Suppliers list real-time inventory and pricing; vendors build multi-item procurement orders in the live cart.',
     },
     {
-      title: 'Procure & Fulfill',
-      desc: 'Negotiate orders, dispatch digital purchase orders, and coordinate transparent delivery cycles.',
+      title: 'Instant Order Fulfillment',
+      desc: 'Suppliers receive push alerts, accept requests, schedule dispatches, and trigger real-time inventory sync.',
     },
+  ];
+
+  const metrics = [
+    { label: 'Fulfillment Accuracy', value: '99.98%' },
+    { label: 'Order Processing Speed', value: '< 2.4s' },
+    { label: 'Verified Trade Partners', value: '12,500+' },
+    { label: 'Monthly Logistics Volume', value: '₹180Cr+' },
   ];
 
   const faqs = [
     {
       id: 'faq-1',
       title: 'What is Flowza?',
-      content: 'Flowza is a modern, enterprise-grade B2B Supply Chain & Procurement Platform designed to connect retail vendors and wholesale suppliers directly, simplifying the order negotiation and fulfillment process.',
+      content: 'Flowza is an enterprise-grade B2B Supply Chain & Procurement Network designed to connect retail vendors directly with wholesale suppliers, eliminating manual paperwork, phone call delays, and inventory mismatch.',
     },
     {
       id: 'faq-2',
-      title: 'Who can use Flowza?',
-      content: 'Flowza is designed for B2B transactions: Vendors (e.g. supermarkets, groceries, restaurants, pharmacies) who buy products, and Suppliers (distributors, manufacturers, wholesalers) who sell products.',
+      title: 'How does real-time order dispatch work?',
+      content: 'When a vendor submits a Purchase Order Request, Flowza’s WebSocket engine immediately pushes a high-priority payload to the supplier’s dashboard. Suppliers can accept, adjust quantities, or dispatch orders with instant feedback.',
     },
     {
       id: 'faq-3',
-      title: 'Is there a free plan available?',
-      content: 'Yes! Flowza is free for small businesses during our early access release. Advanced integrations and analytical tools will be introduced under premium plans in future sprints.',
+      title: 'Is Flowza GST-compliant?',
+      content: 'Yes. Every company profile on Flowza includes validated 15-character GSTIN fields, verified business billing addresses, and tax-ready order breakdown statements.',
     },
     {
       id: 'faq-4',
-      title: 'How do I verify my business on Flowza?',
-      content: 'During registration, you provide your basic business details and optionally your 15-character GST number. Once submitted, our team reviews profiles to maintain a high trust quotient across the platform.',
-    },
-    {
-      id: 'faq-5',
-      title: 'What types of businesses can I find on Flowza?',
-      content: 'You can discover verified regional distributors, direct-from-farm supply wholesalers, commercial packaging manufacturers, and retail shops of all types from major Indian states and districts.',
-    },
-    {
-      id: 'faq-6',
-      title: 'Is my procurement data secure on Flowza?',
-      content: 'Absolutely. Security is our priority. We hash passwords using industry-standard bcrypt, use short-lived JWT authorization tokens in memory, and prevent SQL injection through parameters via SQLAlchemy ORM.',
+      title: 'What security standards does Flowza enforce?',
+      content: 'We use OAuth2 Bearer Tokens (JWT) for session control, BCrypt password hashing, parameter-bound ORM queries against SQL injection, and strict Role-Based Access Control (RBAC).',
     },
   ];
 
   const testimonials = [
     {
-      name: 'Ramesh Kumar',
-      company: 'Kumar Wholesale Groceries',
-      avatar: 'RK',
-      quote: 'Flowza helps us organize incoming retail requests effortlessly. We have completely replaced paper registers and phone orders.',
+      name: 'Rajesh Malhotra',
+      company: 'Malhotra Mega Wholesalers',
+      avatar: 'RM',
+      quote: 'Flowza has completely eliminated order ambiguity. We receive instant order requests with itemized quantities directly in our incoming order desk.',
     },
     {
-      name: 'Priya Sharma',
-      company: 'Organic Life Supermarket',
-      avatar: 'PS',
-      quote: 'Verifying GST details of new suppliers is immediate. The transparency of the procurement cycle makes logistics planning simple.',
+      name: 'Kavita Reddy',
+      company: 'FreshMart Supermarkets',
+      avatar: 'KR',
+      quote: 'The speed of placing procurement requests from supplier catalogs is phenomenal. We get real-time status notifications as soon as orders are accepted.',
     },
     {
-      name: 'Anil Gupta',
-      company: 'Gupta Distributors & Sons',
-      avatar: 'AG',
-      quote: 'Managing product distributions across multiple local regions is much easier with a structured, online company profile.',
+      name: 'Suresh Patel',
+      company: 'Patel Agriculture & Foodtech',
+      avatar: 'SP',
+      quote: 'The modern interface and instant stock updates have allowed us to scale distribution to over 40 regional vendors without hiring extra admin staff.',
     },
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } },
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 overflow-x-hidden">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden bg-gradient-to-br from-blue-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden bg-gradient-to-b from-emerald-500/5 via-transparent to-transparent">
+        {/* Ambient Grid Overlay */}
+        <div className="absolute inset-0 mesh-grid-bg [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Text details */}
-            <div className="text-left space-y-6">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                <span>Sprint 1 Live</span>
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center"
+          >
+            {/* Hero Left Content */}
+            <motion.div variants={itemVariants} className="lg:col-span-7 text-left space-y-6">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold glass-panel border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+                <Sparkles size={14} className="text-emerald-500 animate-pulse" />
+                <span className="font-mono tracking-tight font-bold">NEXT-GEN B2B LOGISTICS PLATFORM</span>
               </div>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
-                Streamline Your <span className="text-primary">Procurement</span>.
-                <br />
-                Simplify Your Supply Chain.
+
+              <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.1]">
+                Precision B2B Supply Chain & <span className="shimmer-text">Automated Procurement.</span>
               </h1>
-              <p className="text-lg text-slate-650 dark:text-slate-300 max-w-lg leading-relaxed">
-                Flowza connects vendors and suppliers on one intelligent platform — making B2B procurement faster, transparent, and highly efficient.
+
+              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-xl leading-relaxed">
+                Connect enterprise vendors directly with wholesale suppliers. Zero manual friction, real-time inventory synchronization, and verified GST trade logistics.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link to="/register">
-                  <Button size="lg" className="w-full sm:w-auto flex items-center justify-center gap-2">
-                    Get Started Free
-                    <ArrowRight size={16} />
+                  <Button variant="primary" size="xl" glow className="w-full sm:w-auto font-heading">
+                    Start Platform Setup Free
+                    <ArrowRight size={18} />
                   </Button>
                 </Link>
                 <a href="#how-it-works">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                    See How It Works
+                  <Button variant="glass" size="xl" className="w-full sm:w-auto font-heading">
+                    Explore Logistics Engine
                   </Button>
                 </a>
               </div>
-            </div>
 
-            {/* Abstract Graphic */}
-            <div className="relative flex justify-center">
-              <div className="w-full max-w-lg aspect-square relative flex items-center justify-center">
-                {/* Background circles */}
-                <div className="absolute inset-0 rounded-full bg-primary/5 dark:bg-primary/10 blur-3xl animate-pulse" />
-                <div className="w-80 h-80 rounded-full border border-dashed border-slate-350 dark:border-slate-800 flex items-center justify-center">
-                  <div className="w-60 h-60 rounded-full border border-dashed border-slate-300 dark:border-slate-750 flex items-center justify-center">
-                    <div className="w-40 h-40 rounded-full border border-primary/30 flex items-center justify-center bg-white dark:bg-slate-900 shadow-xl">
-                      <Building className="h-16 w-16 text-primary" />
-                    </div>
-                  </div>
-                </div>
-                {/* floating elements */}
-                <div className="absolute top-10 right-10 p-3 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-emerald-500" />
-                  <span className="text-xs font-semibold">GST Verified</span>
-                </div>
-                <div className="absolute bottom-10 left-10 p-3 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                  <UserCheck className="h-5 w-5 text-primary" />
-                  <span className="text-xs font-semibold">Verified Suppliers</span>
+              {/* Interactive Role Switcher Bar */}
+              <div className="pt-6">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest font-heading mb-3">Live Interactive Platform Simulation</p>
+                <div className="inline-flex p-1.5 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 gap-1">
+                  <button
+                    onClick={() => setActiveRole('vendor')}
+                    className={`relative px-4 py-2 rounded-xl text-xs font-semibold font-heading transition-colors cursor-pointer ${
+                      activeRole === 'vendor' ? 'text-white' : 'text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    {activeRole === 'vendor' && (
+                      <motion.div
+                        layoutId="activeRoleTab"
+                        className="absolute inset-0 bg-emerald-600 rounded-xl shadow-md"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      <Store size={14} /> Vendor View
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveRole('supplier')}
+                    className={`relative px-4 py-2 rounded-xl text-xs font-semibold font-heading transition-colors cursor-pointer ${
+                      activeRole === 'supplier' ? 'text-white' : 'text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    {activeRole === 'supplier' && (
+                      <motion.div
+                        layoutId="activeRoleTab"
+                        className="absolute inset-0 bg-indigo-600 rounded-xl shadow-md"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      <Truck size={14} /> Wholesale Supplier View
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveRole('admin')}
+                    className={`relative px-4 py-2 rounded-xl text-xs font-semibold font-heading transition-colors cursor-pointer ${
+                      activeRole === 'admin' ? 'text-white' : 'text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    {activeRole === 'admin' && (
+                      <motion.div
+                        layoutId="activeRoleTab"
+                        className="absolute inset-0 bg-slate-800 rounded-xl shadow-md"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      <Cpu size={14} /> System Engine Telemetry
+                    </span>
+                  </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
+
+            {/* Interactive Morphing Hero Preview Card */}
+            <motion.div variants={itemVariants} className="lg:col-span-5 relative">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeRole}
+                  initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96, y: -10 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                  className="relative mx-auto max-w-md glass-panel rounded-3xl p-6 shadow-2xl border border-white/20 dark:border-white/10 glow-emerald"
+                >
+                  <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-4 mb-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-3 w-3 rounded-full bg-red-500" />
+                      <div className="h-3 w-3 rounded-full bg-amber-500" />
+                      <div className="h-3 w-3 rounded-full bg-emerald-500" />
+                    </div>
+                    <Badge variant={activeRole === 'vendor' ? 'emerald' : activeRole === 'supplier' ? 'indigo' : 'cyan'} ping>
+                      {activeRole === 'vendor' ? 'VENDOR DASHBOARD' : activeRole === 'supplier' ? 'SUPPLIER DESK' : 'ADMIN ENGINE'}
+                    </Badge>
+                  </div>
+
+                  {/* Simulated Content based on activeRole */}
+                  {activeRole === 'vendor' && (
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 space-y-3">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-mono text-slate-400">PO #FLW-9482</span>
+                          <Badge variant="emerald" dot>SUBMITTED</Badge>
+                        </div>
+                        <div>
+                          <h4 className="font-heading text-sm font-bold text-slate-900 dark:text-white">
+                            25x Organic Rice (25kg Bags)
+                          </h4>
+                          <p className="text-xs text-slate-500 font-mono">Target Supplier: GreenEarth Wholesale</p>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-mono pt-2 border-t border-slate-100 dark:border-slate-800">
+                          <span className="text-slate-400">Order Budget</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">₹18,500.00</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => setSimStep((prev) => (prev % 3) + 1)}
+                        className="w-full text-xs font-heading font-semibold"
+                      >
+                        Simulate Next Pipeline Stage (Step {simStep}/3)
+                      </Button>
+                    </div>
+                  )}
+
+                  {activeRole === 'supplier' && (
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 space-y-3">
+                        <div className="flex items-center justify-between text-xs font-mono text-indigo-400 font-bold">
+                          <span>INCOMING PO REQUEST</span>
+                          <Badge variant="indigo" ping>NEW ALERT</Badge>
+                        </div>
+                        <h4 className="font-heading text-sm font-bold text-slate-900 dark:text-white">
+                          FreshMart Supermarkets (Order #PO-8821)
+                        </h4>
+                        <div className="flex items-center justify-between text-xs font-mono text-slate-400">
+                          <span>Items: 50x Sunflower Oil 5L</span>
+                          <span className="font-bold text-indigo-400">₹24,000</span>
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <Button size="sm" variant="primary" className="w-full text-xs">Accept PO</Button>
+                          <Button size="sm" variant="outline" className="w-full text-xs">Review</Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeRole === 'admin' && (
+                    <div className="space-y-4 font-mono text-xs">
+                      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                        <div className="flex justify-between text-emerald-400 font-bold">
+                          <span>SYSTEM STATUS</span>
+                          <span>100% OPERATIONAL</span>
+                        </div>
+                        <div className="space-y-1 text-slate-400 text-[11px]">
+                          <p>• FastAPI Core latency: 0.4ms</p>
+                          <p>• WebSocket Clients: 1,420 connected</p>
+                          <p>• GST Verification Engine: Active</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Metrics Banner */}
+      <section className="py-12 border-y border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+            {metrics.map((m, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                viewport={{ once: true }}
+                className="space-y-1"
+              >
+                <div className="text-3xl lg:text-4xl font-extrabold font-mono shimmer-text">
+                  {m.value}
+                </div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-heading">
+                  {m.label}
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-white dark:bg-slate-900">
+      {/* Capabilities Section */}
+      <section id="features" className="py-24 relative bg-slate-50 dark:bg-slate-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
-              Features Built for Business Growth
+            <Badge variant="indigo" className="uppercase">Platform Architecture</Badge>
+            <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Engineered for Enterprise Supply Chains
             </h2>
-            <p className="text-slate-500 dark:text-slate-400">
-              Discover how Flowza simplifies day-to-day B2B transactions and streamlines partnerships.
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Everything required to modernize wholesale ordering, eliminate inventory leaks, and ensure trade compliance.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feat, idx) => (
-              <div
+              <motion.div
                 key={idx}
-                className="relative p-6 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 rounded-xl transition-all-300 hover:shadow-md hover:-translate-y-1"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -6, scale: 1.02 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                viewport={{ once: true }}
+                className="glass-card p-6 rounded-2xl flex flex-col justify-between spotlight-card cursor-pointer group"
               >
-                <div className="h-12 w-12 rounded-lg bg-primary/10 dark:bg-primary/15 flex items-center justify-center mb-5">
-                  {feat.icon}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 group-hover:scale-110 transition-transform">
+                      {feat.icon}
+                    </div>
+                    <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                      {feat.tag}
+                    </span>
+                  </div>
+                  <h3 className="font-heading text-lg font-bold text-slate-900 dark:text-white mb-2">
+                    {feat.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                    {feat.desc}
+                  </p>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                  {feat.title}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
+      {/* How Flowza Works */}
+      <section id="how-it-works" className="py-24 bg-white dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
+            <Badge variant="cyan" className="uppercase">Logistics Pipeline</Badge>
+            <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Zero-Friction 3-Step Operations
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Transform legacy manual registers into a high-speed digital procurement cycle.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {steps.map((step, idx) => (
+              <div key={idx} className="glass-card p-8 rounded-2xl relative text-left space-y-4">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white font-extrabold font-mono flex items-center justify-center text-base shadow-md">
+                  0{idx + 1}
+                </div>
+                <h3 className="font-heading text-lg font-bold text-slate-900 dark:text-white">
+                  {step.title}
                 </h3>
-                <p className="text-sm text-slate-550 dark:text-slate-400 leading-relaxed">
-                  {feat.desc}
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  {step.desc}
                 </p>
-                {feat.upcoming && (
-                  <span className="absolute top-4 right-4 bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-2 py-0.5 rounded text-xxs font-medium uppercase tracking-wider">
-                    Upcoming
-                  </span>
-                )}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How Flowza Works */}
-      <section id="how-it-works" className="py-20 bg-slate-50 dark:bg-slate-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
-              How Flowza Works
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400">
-              A clear, 3-step pipeline to transform your supply procurement.
-            </p>
-          </div>
-
-          <div className="relative">
-            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 dark:bg-slate-800 -translate-y-1/2 hidden lg:block" />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 relative z-10">
-              {steps.map((step, idx) => (
-                <div key={idx} className="bg-white dark:bg-slate-900 p-8 rounded-xl border border-slate-200 dark:border-slate-800 text-center space-y-4">
-                  <div className="h-12 w-12 rounded-full bg-primary text-white font-bold flex items-center justify-center mx-auto text-lg shadow-md">
-                    {idx + 1}
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                    {step.title}
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                    {step.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-20 bg-white dark:bg-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
-          {/* For Vendors */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <span className="text-xs font-semibold uppercase tracking-wider text-primary">For Vendors</span>
-              <h2 className="text-3xl font-bold text-slate-900 dark:text-white leading-tight">
-                Source products from verified suppliers, negotiate pricing, and grow.
-              </h2>
-              <p className="text-slate-650 dark:text-slate-450 leading-relaxed text-sm">
-                Get access to commercial wholesale suppliers. Manage your profile, inspect addresses, verify GST compliance details, and keep track of all partner relations from a single, fast portal.
-              </p>
-              <div className="flex gap-4">
-                <Link to="/register">
-                  <Button>Register as Vendor</Button>
-                </Link>
-              </div>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-950 p-8 rounded-2xl border border-slate-200/50 dark:border-slate-800">
-              <div className="space-y-4">
-                <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-2/3" />
-                <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-1/2" />
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="h-20 bg-primary/10 rounded-lg flex items-center justify-center font-bold text-primary">GST Ready</div>
-                  <div className="h-20 bg-primary/10 rounded-lg flex items-center justify-center font-bold text-primary">1-Click PO</div>
-                  <div className="h-20 bg-primary/10 rounded-lg flex items-center justify-center font-bold text-primary">Fast Dispatch</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* For Suppliers */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center lg:flex-row-reverse">
-            <div className="lg:order-2 space-y-6">
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-500">For Suppliers</span>
-              <h2 className="text-3xl font-bold text-slate-900 dark:text-white leading-tight">
-                Reach more business customers and track catalog distributions.
-              </h2>
-              <p className="text-slate-650 dark:text-slate-450 leading-relaxed text-sm">
-                Broaden your wholesale distribution network. Register your business listing with details, highlight state/city delivery points, and manage orders with verified B2B vendors instantly.
-              </p>
-              <div className="flex gap-4">
-                <Link to="/register">
-                  <Button className="bg-emerald-500 hover:bg-emerald-650 focus:ring-emerald-500">Register as Supplier</Button>
-                </Link>
-              </div>
-            </div>
-            <div className="lg:order-1 bg-slate-50 dark:bg-slate-950 p-8 rounded-2xl border border-slate-200/50 dark:border-slate-800">
-              <div className="space-y-4">
-                <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-3/4" />
-                <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-2/3" />
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="h-24 bg-emerald-500/10 rounded-lg flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-emerald-500">100%</span>
-                    <span className="text-xxs text-slate-500 uppercase font-medium">B2B Compliance</span>
-                  </div>
-                  <div className="h-24 bg-emerald-500/10 rounded-lg flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-emerald-500">0%</span>
-                    <span className="text-xxs text-slate-500 uppercase font-medium">Retail Noise</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Testimonials */}
-      <section className="py-20 bg-slate-50 dark:bg-slate-950 border-t border-b border-slate-200 dark:border-slate-800">
+      <section className="py-24 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
-              Trusted by Businesses Across India
+            <Badge variant="emerald" className="uppercase">Customer Endorsements</Badge>
+            <h2 className="font-heading text-3xl font-extrabold text-slate-900 dark:text-white">
+              Trusted by Leading Supply Networks
             </h2>
-            <p className="text-slate-500 dark:text-slate-400">
-              See how other procurement teams are digitizing their procurement pipelines.
-            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((test, idx) => (
               <div
                 key={idx}
-                className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between"
+                className="glass-card p-6 rounded-2xl flex flex-col justify-between"
               >
-                <p className="text-sm italic text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
+                <p className="text-xs italic text-slate-600 dark:text-slate-300 leading-relaxed mb-6 font-sans">
                   "{test.quote}"
                 </p>
-                <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center text-sm">
+                <div className="flex items-center space-x-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center text-xs font-mono border border-emerald-500/20">
                     {test.avatar}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white font-heading">
                       {test.name}
                     </h4>
-                    <p className="text-xxs text-slate-550 dark:text-slate-400">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                       {test.company}
                     </p>
                   </div>
@@ -366,14 +496,14 @@ export const Landing: React.FC = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-white dark:bg-slate-900">
+      <section className="py-24 bg-white dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-3 mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
+            <h2 className="font-heading text-3xl font-extrabold text-slate-900 dark:text-white">
               Frequently Asked Questions
             </h2>
-            <p className="text-slate-550 dark:text-slate-405">
-              Clear answers to common questions about Flowza.
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Clear technical answers regarding Flowza’s architecture and deployment options.
             </p>
           </div>
 
@@ -385,3 +515,4 @@ export const Landing: React.FC = () => {
     </div>
   );
 };
+

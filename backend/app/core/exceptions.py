@@ -25,3 +25,8 @@ class NotFoundException(FlowzaException):
 class ConflictException(FlowzaException):
     def __init__(self, detail: str = "Resource conflict"):
         super().__init__(status_code=status.HTTP_409_CONFLICT, detail=detail, code="CONFLICT")
+
+class BadRequestException(FlowzaException):
+    def __init__(self, detail: str = "Bad request"):
+        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail=detail, code="BAD_REQUEST")
+

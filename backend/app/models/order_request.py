@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from app.models.user import User
     from app.models.company import Company
     from app.models.product import Product
+    from app.models.order_status_history import OrderStatusHistory
 
 class OrderRequest(Base):
     __tablename__ = "order_requests"
@@ -25,7 +26,7 @@ class OrderRequest(Base):
     delivery_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     delivery_address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     priority: Mapped[str] = mapped_column(String(20), default="medium")
-    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, accepted, rejected, in_progress, completed, cancelled
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, accepted, processing, packed, shipped, delivered, completed, rejected, cancelled
     supplier_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     responded_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -35,6 +36,7 @@ class OrderRequest(Base):
     vendor_company: Mapped["Company"] = relationship("Company", foreign_keys=[vendor_company_id], back_populates="vendor_orders")
     supplier_company: Mapped["Company"] = relationship("Company", foreign_keys=[supplier_company_id], back_populates="supplier_orders")
     items: Mapped[List["OrderRequestItem"]] = relationship("OrderRequestItem", back_populates="order_request", cascade="all, delete-orphan")
+    status_history: Mapped[List["OrderStatusHistory"]] = relationship("OrderStatusHistory", back_populates="order_request", cascade="all, delete-orphan", order_by="OrderStatusHistory.created_at.asc()")
 
 
 class OrderRequestItem(Base):

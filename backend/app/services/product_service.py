@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.product_repo import ProductRepository
+from app.repositories.inventory_repo import InventoryRepository
 from app.schemas.product import ProductCreate, ProductUpdate
 from app.core.exceptions import NotFoundException, PermissionDeniedException, ConflictException
 from app.models.product import Product
@@ -10,6 +11,7 @@ class ProductService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.product_repo = ProductRepository(db)
+        self.inv_repo = InventoryRepository(db)
 
     async def create_product(self, company_id: uuid.UUID, data: ProductCreate) -> Product:
         if data.sku:
@@ -20,6 +22,12 @@ class ProductService:
         product_data = data.model_dump()
         product_data["company_id"] = company_id
         product = await self.product_repo.create(product_data)
+
+        # Auto-create inventory record (quantity_on_hand=0) for new product
+        existing_inv = await self.inv_repo.get_by_product_id(product.id)
+        if not existing_inv:
+            await self.inv_repo.create(product.id)
+
         await self.db.commit()
         return product
 

@@ -185,38 +185,38 @@ export const Register: React.FC = () => {
   return (
     <div className="min-h-screen relative flex items-center justify-center py-12 px-4 bg-slate-50 dark:bg-slate-950 transition-colors duration-300 overflow-hidden">
       {/* Background Glows */}
-      <div className="absolute top-10 left-10 w-96 h-96 bg-blue-500/10 dark:bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-10 left-10 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-96 h-96 bg-indigo-500/10 dark:bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
 
       {/* Navigation top bar */}
       <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-20">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-500 dark:hover:text-white transition-colors font-heading"
         >
-          <ArrowLeft size={16} /> Back to Home
+          <ArrowLeft size={16} /> Back to Flowza Overview
         </Link>
         <button
           onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-          className="p-2 rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+          className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           title="Toggle theme"
         >
-          {resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          {resolvedTheme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
         </button>
       </div>
 
       <div className="w-full max-w-2xl space-y-6 relative z-10 pt-8">
-        <Card className="glass-card shadow-2xl border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden">
-          <CardHeader className="text-center space-y-3 pt-8 pb-4">
-            <div className="mx-auto h-12 w-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-blue-500/30">
+        <Card className="glass-panel shadow-2xl border-slate-200/80 dark:border-slate-800 rounded-3xl overflow-hidden p-2">
+          <CardHeader className="text-center space-y-3 pt-6 pb-4">
+            <div className="mx-auto h-12 w-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center text-white font-extrabold text-2xl shadow-lg shadow-emerald-500/30 border border-emerald-300/30">
               F
             </div>
             <div>
-              <CardTitle className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Create Your Flowza Account
+              <CardTitle className="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">
+                Initialize Flowza Workspace
               </CardTitle>
               <CardDescription className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Join verified B2B vendors & suppliers on the modern procurement network
+                Join verified B2B vendors & wholesale suppliers on the precision procurement network
               </CardDescription>
             </div>
           </CardHeader>
@@ -228,9 +228,9 @@ export const Register: React.FC = () => {
                   {/* Step 1: Account Role Selection Upfront */}
                   {step === 0 && (
                     <div className="space-y-4 animate-in fade-in duration-300">
-                      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 border-b border-slate-200 dark:border-slate-800 pb-2 mb-4">
+                      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 border-b border-slate-200 dark:border-slate-800 pb-2 mb-4">
                         <Key size={18} />
-                        <span className="font-bold text-sm">Step 1: Choose Account Role</span>
+                        <span className="font-bold text-sm font-heading">Step 1: Select Platform Role</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -238,16 +238,17 @@ export const Register: React.FC = () => {
                           onClick={() => methods.setValue('role_name', 'vendor')}
                           className={`p-5 rounded-2xl border-2 cursor-pointer transition-all ${
                             selectedRole === 'vendor'
-                              ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 shadow-md'
-                              : 'border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
+                              ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/15 shadow-lg shadow-emerald-900/10'
+                              : 'border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
                           }`}
                         >
-                          <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
+                          <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3 border border-emerald-500/30">
                             <Store size={22} />
                           </div>
-                          <h3 className="text-base font-bold text-slate-900 dark:text-white">Vendor (Purchaser)</h3>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-white font-heading">Vendor (Purchaser)</h3>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                             Buy wholesale goods for retail stores, supermarkets, grocery shops, hotels, & restaurants.
+
                           </p>
                         </div>
 

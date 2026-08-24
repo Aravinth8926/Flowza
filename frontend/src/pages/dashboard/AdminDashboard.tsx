@@ -46,24 +46,24 @@ export const AdminDashboard: React.FC = () => {
   const filteredLogs = logFilter === 'ALL' ? logs : logs.filter((l) => l.type === logFilter);
 
   return (
-    <PageWrapper title="Flowza Platform Administration">
+    <PageWrapper title="Flowza System Administration">
       <div className="space-y-8">
         {/* Stat Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {stats.map((stat, idx) => (
-            <Card key={idx}>
-              <CardContent className="p-6 flex items-center justify-between">
+            <Card key={idx} className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xxs font-semibold text-slate-500 dark:text-[#8896ab] uppercase tracking-wider">{stat.label}</p>
-                  <h3 className="text-3xl font-black text-slate-900 dark:text-[#f1f5f9] mt-1">{stat.value}</h3>
-                  <p className="text-xxs text-emerald-600 dark:text-[hsl(160_84%_65%)] font-medium mt-1 flex items-center gap-1">
-                    <Activity size={12} /> Platform active
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-heading">{stat.label}</p>
+                  <h3 className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white mt-1">{stat.value}</h3>
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono font-bold mt-1 flex items-center gap-1">
+                    <Activity size={12} className="animate-pulse" /> 100% Operational
                   </p>
                 </div>
-                <div className="h-10 w-10 rounded-lg bg-blue-50 dark:bg-[#1c2740] flex items-center justify-center">
+                <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
                   {stat.icon}
                 </div>
-              </CardContent>
+              </div>
             </Card>
           ))}
         </div>

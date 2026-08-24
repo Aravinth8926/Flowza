@@ -17,6 +17,8 @@ import { VendorOrders } from './pages/vendor/VendorOrders';
 import { IncomingOrders } from './pages/supplier/IncomingOrders';
 import { SupplierProducts } from './pages/supplier/SupplierProducts';
 import { VendorCatalog } from './pages/vendor/VendorCatalog';
+import VendorCart from './pages/vendor/VendorCart';
+import InventoryManagement from './pages/supplier/InventoryManagement';
 import { Profile } from './pages/Profile';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { ShieldAlert, Home, RefreshCw } from 'lucide-react';
@@ -192,6 +194,14 @@ export const App: React.FC = () => {
                   </RoleGuard>
                 }
               />
+              <Route
+                path="/dashboard/vendor/cart"
+                element={
+                  <RoleGuard allowedRoles={['vendor']}>
+                    <VendorCart />
+                  </RoleGuard>
+                }
+              />
 
               {/* Supplier Protected Routes */}
               <Route
@@ -215,6 +225,14 @@ export const App: React.FC = () => {
                 element={
                   <RoleGuard allowedRoles={['supplier']}>
                     <SupplierProducts />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/dashboard/supplier/inventory"
+                element={
+                  <RoleGuard allowedRoles={['supplier']}>
+                    <InventoryManagement />
                   </RoleGuard>
                 }
               />

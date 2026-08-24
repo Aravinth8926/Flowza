@@ -176,23 +176,26 @@ export const SupplierDashboard: React.FC = () => {
         <Breadcrumb items={[{ label: 'Supplier Workspace', active: true }]} />
 
         {/* Welcome Banner */}
-        <div className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-[#1e293b] bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-[#151d2e] dark:to-[#0f172a] text-white dark:text-[#f1f5f9] p-6 md:p-8">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 text-white p-6 md:p-8 shadow-2xl glow-emerald">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xxs font-semibold bg-white/20 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border dark:border-emerald-500/20 text-white backdrop-blur-xs mb-3">
-                <ShieldCheck size={12} /> Verified Supplier Workspace
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass-panel border-emerald-500/30 text-emerald-400 mb-3 font-mono">
+                <ShieldCheck size={14} className="text-emerald-400" />
+                <span>VERIFIED WHOLESALE SUPPLIER WORKSPACE</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+              <h1 className="font-heading text-3xl md:text-4xl font-extrabold tracking-tight">
                 Welcome back, {company?.company_name || user?.full_name || 'Supplier'}
               </h1>
-              <p className="text-emerald-100 dark:text-[#8896ab] text-xs mt-1">{currentDate}</p>
+              <p className="text-slate-400 text-xs mt-1 font-mono">{currentDate}</p>
             </div>
             <div className="flex items-center gap-3">
               <Button
+                variant="primary"
+                glow
                 onClick={() => setIsAddProductOpen(true)}
-                className="bg-white text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-500 font-semibold text-xs border-0 cursor-pointer shadow-xs"
+                className="font-heading font-semibold text-xs"
               >
-                <PlusCircle size={14} className="mr-1.5" /> Add Product Listing
+                <PlusCircle size={15} className="mr-1.5" /> Add Product Listing
               </Button>
             </div>
           </div>
@@ -200,58 +203,58 @@ export const SupplierDashboard: React.FC = () => {
 
         {/* Stats Metrics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <Card>
-            <CardContent className="p-5 flex items-center justify-between">
+          <Card className="p-5">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-xxs font-semibold text-slate-500 dark:text-[#8896ab] uppercase tracking-wider">Connected Vendors</p>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-[#f1f5f9] mt-1">24</h3>
-                <p className="text-xxs font-medium text-emerald-600 dark:text-[hsl(160_84%_65%)] mt-1 flex items-center gap-1">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-heading">Connected B2B Vendors</p>
+                <h3 className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white mt-1">24</h3>
+                <p className="text-[11px] font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
                   <TrendingUp size={12} /> +5 this week
                 </p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-emerald-50 dark:bg-[#1c2740] text-emerald-600 dark:text-[hsl(160_84%_65%)] flex items-center justify-center">
-                <Building size={20} />
+              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                <Building size={22} />
               </div>
-            </CardContent>
+            </div>
           </Card>
 
-          <Card>
-            <CardContent className="p-5 flex items-center justify-between">
+          <Card className="p-5">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-xxs font-semibold text-slate-500 dark:text-[#8896ab] uppercase tracking-wider">Catalog SKUs</p>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-[#f1f5f9] mt-1">{products.length} SKUs</h3>
-                <p className="text-xxs font-medium text-blue-600 dark:text-[hsl(217_91%_65%)] mt-1">Wholesale Active</p>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-heading">Catalog Wholesale SKUs</p>
+                <h3 className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white mt-1">{products.length} SKUs</h3>
+                <p className="text-[11px] font-bold font-mono text-indigo-500 mt-1">Active Listings</p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-blue-50 dark:bg-[#1c2740] text-blue-600 dark:text-[hsl(217_91%_65%)] flex items-center justify-center">
-                <PackageCheck size={20} />
+              <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20">
+                <PackageCheck size={22} />
               </div>
-            </CardContent>
+            </div>
           </Card>
 
-          <Card>
-            <CardContent className="p-5 flex items-center justify-between">
+          <Card className="p-5">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-xxs font-semibold text-slate-500 dark:text-[#8896ab] uppercase tracking-wider">Order Revenue</p>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-[#f1f5f9] mt-1">₹3,80,000</h3>
-                <p className="text-xxs font-medium text-emerald-600 dark:text-[hsl(160_84%_65%)] mt-1">B2B Volume</p>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-heading">Monthly Order Volume</p>
+                <h3 className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white mt-1">₹3,80,000</h3>
+                <p className="text-[11px] font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">Trade Revenue</p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-emerald-50 dark:bg-[#1c2740] text-emerald-600 dark:text-[hsl(160_84%_65%)] flex items-center justify-center">
-                <TrendingUp size={20} />
+              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                <TrendingUp size={22} />
               </div>
-            </CardContent>
+            </div>
           </Card>
 
-          <Card>
-            <CardContent className="p-5 flex items-center justify-between">
+          <Card className="p-5">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-xxs font-semibold text-slate-500 dark:text-[#8896ab] uppercase tracking-wider">Supplier Status</p>
-                <h3 className="text-sm font-bold text-emerald-600 dark:text-[hsl(160_84%_65%)] mt-1">Active Seller</h3>
-                <p className="text-xxs font-medium text-slate-400 dark:text-[#64748b] mt-0.5">Role: Supplier</p>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-heading">Supplier Compliance</p>
+                <h3 className="text-base font-extrabold font-heading text-emerald-600 dark:text-emerald-400 mt-1">ACTIVE SELLER</h3>
+                <p className="text-[11px] font-mono text-slate-400 mt-0.5">Role: Supplier</p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-emerald-50 dark:bg-[#1c2740] text-emerald-600 dark:text-[hsl(160_84%_65%)] flex items-center justify-center">
-                <CheckCircle2 size={20} />
+              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                <CheckCircle2 size={22} />
               </div>
-            </CardContent>
+            </div>
           </Card>
         </div>
 

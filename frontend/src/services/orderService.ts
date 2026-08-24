@@ -1,5 +1,5 @@
 import api from './api';
-import { PurchaseOrder, OrderStats, CreateOrderPayload } from '../types';
+import { PurchaseOrder, OrderStats, CreateOrderPayload, OrderStatus } from '../types';
 
 export interface OrderQueryFilters {
   status?: string;
@@ -38,9 +38,51 @@ export const orderService = {
     return response.data;
   },
 
-  updateOrderStatus: async (orderId: string, status: string) => {
-    const response = await api.patch(`/api/v1/orders/${orderId}/status`, { status });
+  updateOrderStatus: async (
+    orderId: string,
+    status: OrderStatus | string,
+    note?: string,
+    deliveryDate?: string
+  ) => {
+    const response = await api.patch(`/api/v1/orders/${orderId}/status`, {
+      status,
+      note,
+      delivery_date: deliveryDate,
+    });
     return response.data;
+  },
+
+  // Role-specific convenience methods
+  acceptOrder: async (orderId: string, note?: string, deliveryDate?: string) => {
+    return orderService.updateOrderStatus(orderId, 'accepted', note, deliveryDate);
+  },
+
+  rejectOrder: async (orderId: string, reason: string) => {
+    return orderService.updateOrderStatus(orderId, 'rejected', reason);
+  },
+
+  startProcessing: async (orderId: string, note?: string) => {
+    return orderService.updateOrderStatus(orderId, 'processing', note);
+  },
+
+  markPacked: async (orderId: string, note?: string) => {
+    return orderService.updateOrderStatus(orderId, 'packed', note);
+  },
+
+  markShipped: async (orderId: string, note?: string) => {
+    return orderService.updateOrderStatus(orderId, 'shipped', note);
+  },
+
+  confirmDelivered: async (orderId: string, note?: string) => {
+    return orderService.updateOrderStatus(orderId, 'delivered', note);
+  },
+
+  completeOrder: async (orderId: string, note?: string) => {
+    return orderService.updateOrderStatus(orderId, 'completed', note);
+  },
+
+  cancelOrder: async (orderId: string, reason?: string) => {
+    return orderService.updateOrderStatus(orderId, 'cancelled', reason);
   },
 
   getOrderStats: async (): Promise<OrderStats> => {

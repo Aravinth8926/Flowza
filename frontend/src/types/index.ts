@@ -127,17 +127,41 @@ export interface ErrorResponse {
 
 // Purchase Orders & Real-Time Types
 export type OrderPriority = 'low' | 'medium' | 'high' | 'urgent';
-export type OrderStatus = 'pending' | 'accepted' | 'rejected' | 'in_progress' | 'completed' | 'cancelled' | 'changes_suggested';
+export type OrderStatus =
+  | 'pending'
+  | 'accepted'
+  | 'processing'
+  | 'packed'
+  | 'shipped'
+  | 'delivered'
+  | 'completed'
+  | 'rejected'
+  | 'cancelled'
+  | 'in_progress'
+  | 'changes_suggested';
 
 export interface OrderItem {
   id?: string;
   index?: number;
+  product_id?: string | null;
   product_name: string;
+  product_name_snapshot?: string;
   quantity: number;
   unit: string;
+  unit_price?: number;
   estimated_price?: number;
   subtotal?: number;
   notes?: string;
+}
+
+export interface OrderStatusHistoryEntry {
+  id: string;
+  from_status?: string | null;
+  to_status: string;
+  changed_by: string;
+  changed_by_role: string;
+  note?: string | null;
+  timestamp: string;
 }
 
 export interface OrderParty {
@@ -170,6 +194,7 @@ export interface PurchaseOrder {
   item_count: number;
   item_preview: string;
   items: OrderItem[];
+  timeline?: OrderStatusHistoryEntry[];
   supplier_response?: string | null;
   responded_at?: string | null;
   created_at: string;
@@ -183,7 +208,11 @@ export interface OrderStats {
   pending_orders: number;
   new_requests: number;
   accepted_orders: number;
-  in_progress_orders: number;
+  processing_orders?: number;
+  in_progress_orders?: number;
+  packed_orders?: number;
+  shipped_orders?: number;
+  delivered_orders?: number;
   completed_orders: number;
   rejected_orders: number;
   cancelled_orders: number;
@@ -252,4 +281,118 @@ export interface ProductListResponse {
     page_size: number;
     total_pages: number;
   };
+}
+
+// ── Inventory Types ──────────────────────────────────────────────────────────
+
+export interface InventoryRecord {
+  id: string;
+  product_id: string;
+  quantity_on_hand: number;
+  quantity_reserved: number;
+  available_quantity: number;
+  reorder_level: number;
+  reorder_quantity: number;
+  stock_status: 'healthy' | 'low_stock' | 'out_of_stock';
+  created_at: string;
+  updated_at: string;
+  product?: {
+    id: string;
+    name: string;
+    sku?: string | null;
+    category?: string | null;
+    unit: string;
+    price: number;
+    is_active: boolean;
+  } | null;
+}
+
+export interface InventoryListResponse {
+  items: InventoryRecord[];
+  total: number;
+}
+
+export interface InventoryUpdatePayload {
+  quantity_on_hand?: number;
+  reorder_level?: number;
+  reorder_quantity?: number;
+}
+
+export interface InventoryAdjustPayload {
+  adjustment: number;
+  reason?: string;
+}
+
+// ── Cart Types ───────────────────────────────────────────────────────────────
+
+export interface CartProduct {
+  id: string;
+  name: string;
+  sku?: string | null;
+  unit: string;
+  price: number;
+  is_active: boolean;
+  image_url?: string | null;
+}
+
+export interface CartItem {
+  id: string;
+  cart_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+  price_changed: boolean;
+  current_price?: number | null;
+  product?: CartProduct | null;
+}
+
+export interface CartSupplierInfo {
+  id: string;
+  company_name: string;
+}
+
+export interface Cart {
+  id: string;
+  vendor_id: string;
+  vendor_company_id: string;
+  supplier_company_id: string;
+  supplier?: CartSupplierInfo | null;
+  items: CartItem[];
+  item_count: number;
+  subtotal: number;
+  has_price_changes: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CartListResponse {
+  carts: Cart[];
+  total: number;
+}
+
+export interface CheckoutItemResult {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  subtotal: number;
+}
+
+export interface CheckoutResult {
+  order_id: string;
+  order_number: string;
+  supplier_company: string;
+  status: string;
+  total: number;
+  item_count: number;
+  items: CheckoutItemResult[];
+  message: string;
+}
+
+export interface CheckoutPayload {
+  delivery_date?: string;
+  delivery_address?: string;
+  notes?: string;
 }
