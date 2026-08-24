@@ -17,6 +17,7 @@ import {
   BarChart2,
   ShieldCheck,
   Activity,
+  FileText,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -62,6 +63,11 @@ export const Sidebar: React.FC = () => {
           icon: <Inbox size={18} />,
         },
         {
+          label: 'Sales Invoices',
+          path: '/dashboard/supplier/invoices',
+          icon: <FileText size={18} />,
+        },
+        {
           label: 'My Catalog',
           path: '/dashboard/supplier/products',
           icon: <Package size={18} />,
@@ -94,6 +100,11 @@ export const Sidebar: React.FC = () => {
           label: 'My Orders',
           path: '/dashboard/vendor/orders',
           icon: <ShoppingBag size={18} />,
+        },
+        {
+          label: 'Invoices & Bills',
+          path: '/dashboard/vendor/invoices',
+          icon: <FileText size={18} />,
         },
       ]
       : []),

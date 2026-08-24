@@ -234,6 +234,98 @@ export interface CreateOrderPayload {
   priority?: string;
 }
 
+// Invoices & Financial Records Types
+export type InvoiceStatus = 'generated' | 'cancelled';
+export type PaymentStatus = 'unpaid' | 'partially_paid' | 'paid' | 'overdue';
+
+export interface InvoiceItem {
+  id: string;
+  order_request_item_id?: string | null;
+  product_id?: string | null;
+  product_name_snapshot: string;
+  sku_snapshot?: string | null;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  line_subtotal: number;
+  tax_rate: number;
+  tax_amount: number;
+  line_total: number;
+}
+
+export interface PaymentRecord {
+  id: string;
+  invoice_id: string;
+  amount: number;
+  payment_date: string;
+  method: string;
+  reference?: string | null;
+  notes?: string | null;
+  recorded_by_user_id: string;
+  recorded_by_name?: string | null;
+  created_at: string;
+}
+
+export interface Invoice {
+  id: string;
+  order_request_id: string;
+  invoice_number: string;
+  vendor_company_id: string;
+  supplier_company_id: string;
+  created_by_user_id?: string;
+  vendor_company_name: string;
+  supplier_company_name: string;
+  supplier_gst_number?: string | null;
+  supplier_address?: string | null;
+  vendor_gst_number?: string | null;
+  vendor_address?: string | null;
+  invoice_date: string;
+  due_date: string;
+  currency: string;
+  status: InvoiceStatus;
+  payment_status: PaymentStatus;
+  subtotal: number;
+  tax_amount: number;
+  discount_amount: number;
+  total_amount: number;
+  paid_amount: number;
+  balance_due: number;
+  notes?: string | null;
+  billing_address?: string | null;
+  shipping_address?: string | null;
+  item_count?: number;
+  items?: InvoiceItem[];
+  payments?: PaymentRecord[];
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface InvoiceStats {
+  total_invoices: number;
+  total_amount: number;
+  total_paid: number;
+  total_outstanding: number;
+  unpaid_count: number;
+  partially_paid_count: number;
+  paid_count: number;
+  overdue_count: number;
+}
+
+export interface InvoiceGeneratePayload {
+  due_date?: string;
+  default_tax_rate?: number;
+  discount_amount?: number;
+  notes?: string;
+}
+
+export interface RecordPaymentPayload {
+  amount: number;
+  payment_date?: string;
+  method?: string;
+  reference?: string;
+  notes?: string;
+}
+
 // Product Catalog Types
 export interface Product {
   id: string;

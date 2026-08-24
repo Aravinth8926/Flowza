@@ -9,6 +9,7 @@ from app.models.product import Product
 from app.models.inventory import Inventory
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
+from app.models.invoice import Invoice, InvoiceItem, PaymentRecord
 
 __all__ = [
     "Base",
@@ -23,5 +24,8 @@ __all__ = [
     "Inventory",
     "Cart",
     "CartItem",
+    "Invoice",
+    "InvoiceItem",
+    "PaymentRecord",
 ]
 

@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.company import Company
     from app.models.product import Product
     from app.models.order_status_history import OrderStatusHistory
+    from app.models.invoice import Invoice
 
 class OrderRequest(Base):
     __tablename__ = "order_requests"
@@ -37,6 +38,7 @@ class OrderRequest(Base):
     supplier_company: Mapped["Company"] = relationship("Company", foreign_keys=[supplier_company_id], back_populates="supplier_orders")
     items: Mapped[List["OrderRequestItem"]] = relationship("OrderRequestItem", back_populates="order_request", cascade="all, delete-orphan")
     status_history: Mapped[List["OrderStatusHistory"]] = relationship("OrderStatusHistory", back_populates="order_request", cascade="all, delete-orphan", order_by="OrderStatusHistory.created_at.asc()")
+    invoice: Mapped[Optional["Invoice"]] = relationship("Invoice", back_populates="order_request", uselist=False, cascade="all, delete-orphan")
 
 
 class OrderRequestItem(Base):
@@ -46,6 +48,7 @@ class OrderRequestItem(Base):
     product_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("products.id"), nullable=True)
     product_name: Mapped[str] = mapped_column(String(200), nullable=False)
     product_name_snapshot: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    sku_snapshot: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     quantity: Mapped[int] = mapped_column(Integer, default=1)
     unit: Mapped[str] = mapped_column(String(20), default="units")
     estimated_price: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)

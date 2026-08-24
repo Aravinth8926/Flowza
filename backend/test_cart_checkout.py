@@ -6,8 +6,13 @@ Run from backend/ directory:
 import asyncio
 import sys
 import os
+import io
+import uuid
 import time
 from decimal import Decimal
+
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 

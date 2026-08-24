@@ -189,6 +189,7 @@ class CheckoutService:
                 product_id=product.id,
                 product_name=product.name,
                 product_name_snapshot=product.name,
+                sku_snapshot=product.sku,
                 quantity=ci.quantity,
                 unit=product.unit,
                 unit_price=unit_price,

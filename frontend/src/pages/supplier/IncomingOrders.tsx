@@ -9,8 +9,10 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
 import { OrderTimeline } from '../../components/orders/OrderTimeline';
+import { InvoiceDetailsModal } from '../../components/invoices/InvoiceDetailsModal';
 import { orderService } from '../../services/orderService';
-import { PurchaseOrder, OrderStatus } from '../../types';
+import { invoiceService } from '../../services/invoiceService';
+import { PurchaseOrder, OrderStatus, Invoice } from '../../types';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAuthStore } from '../../store/auth';
 import { toast } from 'sonner';
@@ -33,6 +35,7 @@ import {
   ShieldCheck,
   Building,
   RotateCcw,
+  FileText,
 } from 'lucide-react';
 
 function getRelativeTime(dateString: string): string {
@@ -187,6 +190,10 @@ export const IncomingOrders: React.FC = () => {
     setIsRejectModalOpen(true);
   };
 
+  const [orderInvoice, setOrderInvoice] = useState<Invoice | null>(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+
   const handleOpenShip = (order: PurchaseOrder) => {
     setSelectedOrder(order);
     setShipNote('Dispatched via regional freight logistics.');
@@ -196,6 +203,25 @@ export const IncomingOrders: React.FC = () => {
   const handleOpenDetail = (order: PurchaseOrder) => {
     setSelectedOrder(order);
     setIsDetailModalOpen(true);
+  };
+
+  const handleViewOrGenerateInvoice = async (order: PurchaseOrder) => {
+    try {
+      setIsGeneratingInvoice(true);
+      // Check if invoice exists
+      let inv = await invoiceService.getInvoiceByOrderId(order.raw_id);
+      if (!inv) {
+        toast.info('Generating official tax invoice...');
+        inv = await invoiceService.generateInvoice(order.raw_id);
+        toast.success(`Invoice ${inv.invoice_number} generated successfully`);
+      }
+      setOrderInvoice(inv);
+      setIsInvoiceModalOpen(true);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to retrieve or generate invoice');
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
   };
 
   const tabs = [
@@ -337,6 +363,7 @@ export const IncomingOrders: React.FC = () => {
               const isAccepted = statusNorm === 'accepted';
               const isProcessing = statusNorm === 'processing' || statusNorm === 'in_progress';
               const isPacked = statusNorm === 'packed';
+              const isCompleted = statusNorm === 'completed';
               const isShipped = statusNorm === 'shipped';
 
               return (
@@ -476,6 +503,17 @@ export const IncomingOrders: React.FC = () => {
                           className="text-xs bg-teal-600 hover:bg-teal-700 text-white font-bold"
                         >
                           <Truck className="w-3.5 h-3.5 mr-1" /> Mark Shipped
+                        </Button>
+                      )}
+
+                      {isCompleted && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleViewOrGenerateInvoice(ord)}
+                          disabled={isGeneratingInvoice}
+                          className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                        >
+                          <FileText className="w-3.5 h-3.5 mr-1" /> Invoice
                         </Button>
                       )}
                     </div>
@@ -814,6 +852,14 @@ export const IncomingOrders: React.FC = () => {
             </div>
           )}
         </Dialog>
+
+        {/* Invoice Details Modal */}
+        <InvoiceDetailsModal
+          isOpen={isInvoiceModalOpen}
+          onClose={() => setIsInvoiceModalOpen(false)}
+          invoice={orderInvoice}
+          isSupplier={true}
+        />
       </div>
     </PageWrapper>
   );

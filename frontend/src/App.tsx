@@ -19,6 +19,8 @@ import { SupplierProducts } from './pages/supplier/SupplierProducts';
 import { VendorCatalog } from './pages/vendor/VendorCatalog';
 import VendorCart from './pages/vendor/VendorCart';
 import InventoryManagement from './pages/supplier/InventoryManagement';
+import { SupplierInvoices } from './pages/supplier/SupplierInvoices';
+import { VendorInvoices } from './pages/vendor/VendorInvoices';
 import { Profile } from './pages/Profile';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { ShieldAlert, Home, RefreshCw } from 'lucide-react';
@@ -187,6 +189,14 @@ export const App: React.FC = () => {
                 }
               />
               <Route
+                path="/dashboard/vendor/invoices"
+                element={
+                  <RoleGuard allowedRoles={['vendor']}>
+                    <VendorInvoices />
+                  </RoleGuard>
+                }
+              />
+              <Route
                 path="/dashboard/vendor/products"
                 element={
                   <RoleGuard allowedRoles={['vendor']}>
@@ -217,6 +227,14 @@ export const App: React.FC = () => {
                 element={
                   <RoleGuard allowedRoles={['supplier']}>
                     <IncomingOrders />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/dashboard/supplier/invoices"
+                element={
+                  <RoleGuard allowedRoles={['supplier']}>
+                    <SupplierInvoices />
                   </RoleGuard>
                 }
               />
