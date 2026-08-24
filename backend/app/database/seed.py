@@ -11,14 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 from app.database.session import AsyncSessionLocal, engine
 from app.database.base import Base
-from app.models.role import Role
-from app.models.user import User
-from app.models.company import Company
-from app.models.address import Address
-from app.models.product import Product
-from app.models.inventory import Inventory
-from app.models.cart import Cart, CartItem
-from app.models.order_request import OrderRequest, OrderRequestItem
+from app.models import Role, User, Company, Address, Product, Inventory, Cart, CartItem, OrderRequest, OrderRequestItem
 from app.core.security import get_password_hash
 
 async def seed_data():
@@ -229,9 +222,9 @@ async def seed_data():
                 await db.flush()
 
                 db.add_all([
-                    OrderRequestItem(order_request_id=ord1.id, product_name="Tomatoes", product_name_snapshot="Tomatoes", quantity=50, unit="kg", unit_price=Decimal("40.00"), estimated_price=Decimal("40.00")),
-                    OrderRequestItem(order_request_id=ord1.id, product_name="Onions", product_name_snapshot="Onions", quantity=30, unit="kg", unit_price=Decimal("35.00"), estimated_price=Decimal("35.00")),
-                    OrderRequestItem(order_request_id=ord1.id, product_name="Potatoes", product_name_snapshot="Potatoes", quantity=25, unit="kg", unit_price=Decimal("30.00"), estimated_price=Decimal("30.00")),
+                    OrderRequestItem(order_request_id=ord1.id, product_name="Tomatoes", quantity=50, unit="kg", estimated_price=Decimal("40.00")),
+                    OrderRequestItem(order_request_id=ord1.id, product_name="Onions", quantity=30, unit="kg", estimated_price=Decimal("35.00")),
+                    OrderRequestItem(order_request_id=ord1.id, product_name="Potatoes", quantity=25, unit="kg", estimated_price=Decimal("30.00")),
                 ])
 
                 # Order 2: Pending (Monthly Grocery Restock)
@@ -255,9 +248,9 @@ async def seed_data():
                 await db.flush()
 
                 db.add_all([
-                    OrderRequestItem(order_request_id=ord2.id, product_name="Sona Masoori Rice", product_name_snapshot="Sona Masoori Rice", quantity=100, unit="kg", unit_price=Decimal("75.00"), estimated_price=Decimal("75.00")),
-                    OrderRequestItem(order_request_id=ord2.id, product_name="Toor Dal", product_name_snapshot="Toor Dal", quantity=40, unit="kg", unit_price=Decimal("120.00"), estimated_price=Decimal("120.00")),
-                    OrderRequestItem(order_request_id=ord2.id, product_name="Refined Sunflower Oil", product_name_snapshot="Refined Sunflower Oil", quantity=30, unit="liters", unit_price=Decimal("96.67"), estimated_price=Decimal("96.67")),
+                    OrderRequestItem(order_request_id=ord2.id, product_name="Sona Masoori Rice", quantity=100, unit="kg", estimated_price=Decimal("75.00")),
+                    OrderRequestItem(order_request_id=ord2.id, product_name="Toor Dal", quantity=40, unit="kg", estimated_price=Decimal("120.00")),
+                    OrderRequestItem(order_request_id=ord2.id, product_name="Refined Sunflower Oil", quantity=30, unit="liters", estimated_price=Decimal("96.67")),
                 ])
 
                 # Order 3: Accepted (Fresh Fruits)
@@ -283,8 +276,8 @@ async def seed_data():
                 await db.flush()
 
                 db.add_all([
-                    OrderRequestItem(order_request_id=ord3.id, product_name="Alphonso Mangoes", product_name_snapshot="Alphonso Mangoes", quantity=35, unit="kg", unit_price=Decimal("180.00"), estimated_price=Decimal("180.00")),
-                    OrderRequestItem(order_request_id=ord3.id, product_name="Banganapalli Mangoes", product_name_snapshot="Banganapalli Mangoes", quantity=25, unit="kg", unit_price=Decimal("128.00"), estimated_price=Decimal("128.00")),
+                    OrderRequestItem(order_request_id=ord3.id, product_name="Alphonso Mangoes", quantity=35, unit="kg", estimated_price=Decimal("180.00")),
+                    OrderRequestItem(order_request_id=ord3.id, product_name="Banganapalli Mangoes", quantity=25, unit="kg", estimated_price=Decimal("128.00")),
                 ])
 
                 # Order 4: Completed (Regular Stock)
@@ -310,8 +303,8 @@ async def seed_data():
                 await db.flush()
 
                 db.add_all([
-                    OrderRequestItem(order_request_id=ord4.id, product_name="Wheat Flour (Atta)", product_name_snapshot="Wheat Flour (Atta)", quantity=50, unit="kg", unit_price=Decimal("48.00"), estimated_price=Decimal("48.00")),
-                    OrderRequestItem(order_request_id=ord4.id, product_name="White Sugar", product_name_snapshot="White Sugar", quantity=30, unit="kg", unit_price=Decimal("44.00"), estimated_price=Decimal("44.00")),
+                    OrderRequestItem(order_request_id=ord4.id, product_name="Wheat Flour (Atta)", quantity=50, unit="kg", estimated_price=Decimal("48.00")),
+                    OrderRequestItem(order_request_id=ord4.id, product_name="White Sugar", quantity=30, unit="kg", estimated_price=Decimal("44.00")),
                 ])
 
         await db.commit()

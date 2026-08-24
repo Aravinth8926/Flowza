@@ -8,37 +8,18 @@ This repository holds **Sprint 1 — Project Foundation & Authentication**. All 
 
 Flowza is structured as a single workspace containing a React frontend and a FastAPI backend:
 
-```
-Vendor-AI-main/
-├── src/                  # React + Vite + TypeScript frontend
-│   ├── assets/           # Static images & assets
-│   ├── components/       # Shared UI primitives (shadcn style) & layouts
-│   ├── features/         # Feature modules
-│   ├── hooks/            # React hooks
-│   ├── layouts/          # Portal layouts
-│   ├── pages/            # Public & dashboard pages
-│   ├── routes/           # Routing configuration & guards
-│   ├── services/         # Axios API services
-│   ├── store/            # Zustand global stores (auth, theme, sidebar, user)
-│   ├── types/            # TypeScript schemas & typings
-│   ├── utils/            # Helper utilities
-│   ├── App.tsx           # App configuration
-│   └── main.tsx          # React mounter
+Flowza/
+├── frontend/             # React + Vite + TypeScript frontend
+│   ├── src/              # React components, pages, stores, hooks
+│   ├── index.html        # Vite entry HTML
+│   ├── package.json      # Node dependencies & scripts
+│   ├── tsconfig.json     # TypeScript configuration
+│   └── vite.config.ts    # Vite configuration
 ├── backend/              # FastAPI layered python backend
-│   ├── app/
-│   │   ├── api/          # API v1 routes & dependencies
-│   │   ├── core/         # Configs (Pydantic-Settings), security & exceptions
-│   │   ├── database/     # Async connection & base model
-│   │   ├── models/       # SQLAlchemy models (User, Role, Company, Address)
-│   │   ├── repositories/ # Repo DB helpers
-│   │   ├── schemas/      # Pydantic v2 schemas
-│   │   ├── services/     # Core business services
-│   │   └── utils/        # File saving & helper functions
+│   ├── app/              # API routes, models, schemas, services
 │   ├── alembic/          # Database migrations versioning
-│   ├── uploads/          # Static file uploads (avatars & logos)
 │   ├── alembic.ini       # Migration configs
 │   └── requirements.txt  # Python requirements
-└── package.json          # Root Vite React configurations
 ```
 
 ---
@@ -52,13 +33,14 @@ Vendor-AI-main/
 ### 1. Frontend Setup
 Install dependencies and run the Vite server locally (it will start on `http://localhost:5173`):
 ```bash
-# In the root folder (Vendor-AI-main)
+# Navigate to the frontend directory
+cd frontend
 npm install
 npm run dev
 ```
 
 The frontend uses environment variables for routing requests to the API server:
-Create `.env` in the root:
+Create `.env` in the `frontend/` directory:
 ```env
 VITE_API_URL=http://localhost:8000
 ```
