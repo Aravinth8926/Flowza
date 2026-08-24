@@ -204,3 +204,52 @@ export interface CreateOrderPayload {
   delivery_address?: string;
   priority?: string;
 }
+
+// Product Catalog Types
+export interface Product {
+  id: string;
+  company_id: string;
+  name: string;
+  sku?: string | null;
+  description?: string | null;
+  category?: string | null;
+  price: number;
+  unit: string;
+  image_url?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  company?: Company | null;
+}
+
+export interface ProductCreatePayload {
+  name: string;
+  sku?: string;
+  description?: string;
+  category?: string;
+  price: number;
+  unit: string;
+  image_url?: string;
+  is_active?: boolean;
+}
+
+export interface ProductUpdatePayload {
+  name?: string;
+  sku?: string;
+  description?: string;
+  category?: string;
+  price?: number;
+  unit?: string;
+  image_url?: string;
+  is_active?: boolean;
+}
+
+export interface ProductListResponse {
+  items: Product[];
+  pagination: {
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+  };
+}

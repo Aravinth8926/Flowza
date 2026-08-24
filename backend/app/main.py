@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.exceptions import FlowzaException
 from app.schemas.common import FlowzaErrorResponse, ErrorDetails
-from app.api.v1.routes import auth, users, profiles, suppliers, orders
+from app.api.v1.routes import auth, users, profiles, suppliers, orders, products
 from app.core.websocket import router as ws_router
 from app.database.session import engine
 from app.database.base import Base
@@ -122,6 +122,7 @@ app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(profiles.router, prefix="/api/v1/companies", tags=["Companies"])
 app.include_router(suppliers.router, prefix="/api/v1/suppliers", tags=["Suppliers"])
 app.include_router(orders.router, prefix="/api/v1/orders", tags=["Orders"])
+app.include_router(products.router, prefix="/api/v1/products", tags=["Products"])
 app.include_router(ws_router, tags=["WebSocket"])
 
 @app.get("/", tags=["Root"])

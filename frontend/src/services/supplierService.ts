@@ -2,6 +2,7 @@ import api from './api';
 
 export interface SupplierSummary {
   id: string;
+  company_id?: string;
   full_name: string;
   company_name: string;
   business_type: string;

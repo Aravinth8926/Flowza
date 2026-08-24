@@ -15,6 +15,8 @@ import { AdminDashboard } from './pages/dashboard/AdminDashboard';
 import { NewOrderRequest } from './pages/vendor/NewOrderRequest';
 import { VendorOrders } from './pages/vendor/VendorOrders';
 import { IncomingOrders } from './pages/supplier/IncomingOrders';
+import { SupplierProducts } from './pages/supplier/SupplierProducts';
+import { VendorCatalog } from './pages/vendor/VendorCatalog';
 import { Profile } from './pages/Profile';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { ShieldAlert, Home, RefreshCw } from 'lucide-react';
@@ -130,7 +132,7 @@ export const App: React.FC = () => {
             {/* Public Routes */}
             <Route path="/" element={<Landing />} />
             <Route path="/about" element={<About />} />
-            
+
             {/* Auth Routes (Only access when NOT logged in) */}
             <Route
               path="/login"
@@ -182,6 +184,14 @@ export const App: React.FC = () => {
                   </RoleGuard>
                 }
               />
+              <Route
+                path="/dashboard/vendor/products"
+                element={
+                  <RoleGuard allowedRoles={['vendor']}>
+                    <VendorCatalog />
+                  </RoleGuard>
+                }
+              />
 
               {/* Supplier Protected Routes */}
               <Route
@@ -197,6 +207,14 @@ export const App: React.FC = () => {
                 element={
                   <RoleGuard allowedRoles={['supplier']}>
                     <IncomingOrders />
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/dashboard/supplier/products"
+                element={
+                  <RoleGuard allowedRoles={['supplier']}>
+                    <SupplierProducts />
                   </RoleGuard>
                 }
               />

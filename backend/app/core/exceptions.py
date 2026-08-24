@@ -21,3 +21,7 @@ class PermissionDeniedException(FlowzaException):
 class NotFoundException(FlowzaException):
     def __init__(self, detail: str = "Resource not found"):
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=detail, code="NOT_FOUND")
+
+class ConflictException(FlowzaException):
+    def __init__(self, detail: str = "Resource conflict"):
+        super().__init__(status_code=status.HTTP_409_CONFLICT, detail=detail, code="CONFLICT")

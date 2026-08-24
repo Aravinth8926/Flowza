@@ -12,6 +12,7 @@ import {
   Inbox,
   PlusCircle,
   ShoppingBag,
+  Package,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 
@@ -50,26 +51,36 @@ export const Sidebar: React.FC = () => {
     },
     ...(roleName === 'supplier'
       ? [
-          {
-            label: 'Incoming Orders',
-            path: '/dashboard/supplier/orders/incoming',
-            icon: <Inbox size={18} />,
-          },
-        ]
+        {
+          label: 'Incoming Orders',
+          path: '/dashboard/supplier/orders/incoming',
+          icon: <Inbox size={18} />,
+        },
+        {
+          label: 'My Products',
+          path: '/dashboard/supplier/products',
+          icon: <Package size={18} />,
+        },
+      ]
       : []),
     ...(roleName === 'vendor'
       ? [
-          {
-            label: 'New Order Request',
-            path: '/dashboard/vendor/orders/new',
-            icon: <PlusCircle size={18} />,
-          },
-          {
-            label: 'Sent Orders',
-            path: '/dashboard/vendor/orders',
-            icon: <ShoppingBag size={18} />,
-          },
-        ]
+        {
+          label: 'Product Catalog',
+          path: '/dashboard/vendor/products',
+          icon: <Package size={18} />,
+        },
+        {
+          label: 'New Order Request',
+          path: '/dashboard/vendor/orders/new',
+          icon: <PlusCircle size={18} />,
+        },
+        {
+          label: 'Sent Orders',
+          path: '/dashboard/vendor/orders',
+          icon: <ShoppingBag size={18} />,
+        },
+      ]
       : []),
     {
       label: 'My Profile',
@@ -95,9 +106,8 @@ export const Sidebar: React.FC = () => {
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-30 flex flex-col bg-white dark:bg-[#0c111d] border-r border-slate-200 dark:border-[#1e293b] transition-all duration-300 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        } ${isCollapsed ? 'w-20' : 'w-64'}`}
+        className={`fixed top-0 bottom-0 left-0 z-30 flex flex-col bg-white dark:bg-[#0c111d] border-r border-slate-200 dark:border-[#1e293b] transition-all duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+          } ${isCollapsed ? 'w-20' : 'w-64'}`}
       >
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-slate-200 dark:border-[#1e293b] shrink-0">
@@ -159,10 +169,9 @@ export const Sidebar: React.FC = () => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 text-xs font-medium rounded-md transition-colors ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-600 dark:bg-[#1a253a] dark:text-[#f1f5f9] border-l-2 border-blue-500 font-semibold'
-                    : 'text-slate-600 dark:text-[#8896ab] hover:bg-slate-100/60 dark:hover:bg-[#151d2e] hover:text-slate-900 dark:hover:text-[#f1f5f9]'
+                `flex items-center gap-3 px-3 py-2.5 text-xs font-medium rounded-md transition-colors ${isActive
+                  ? 'bg-blue-50 text-blue-600 dark:bg-[#1a253a] dark:text-[#f1f5f9] border-l-2 border-blue-500 font-semibold'
+                  : 'text-slate-600 dark:text-[#8896ab] hover:bg-slate-100/60 dark:hover:bg-[#151d2e] hover:text-slate-900 dark:hover:text-[#f1f5f9]'
                 } ${isCollapsed ? 'justify-center px-0' : ''}`
               }
               title={isCollapsed ? item.label : undefined}
@@ -178,9 +187,8 @@ export const Sidebar: React.FC = () => {
           <Button
             variant="ghost"
             onClick={handleLogout}
-            className={`w-full flex items-center gap-3 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 ${
-              isCollapsed ? 'justify-center px-0' : 'justify-start'
-            }`}
+            className={`w-full flex items-center gap-3 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 ${isCollapsed ? 'justify-center px-0' : 'justify-start'
+              }`}
             title={isCollapsed ? 'Logout' : undefined}
           >
             <LogOut size={16} />

@@ -81,6 +81,7 @@ async def list_suppliers(
 
         formatted.append({
             "id": str(s.id),
+            "company_id": str(s.company_id) if s.company_id else None,
             "full_name": s.full_name,
             "company_name": comp.company_name if comp else s.full_name,
             "business_type": comp.business_type if comp else "Wholesale Distributor",
@@ -143,6 +144,7 @@ async def get_supplier_details(
         "success": True,
         "data": {
             "id": str(supplier.id),
+            "company_id": str(supplier.company_id) if supplier.company_id else None,
             "company_name": comp.company_name if comp else supplier.full_name,
             "business_type": comp.business_type if comp else "Distributor",
             "description": comp.description if comp else "Verified wholesale supplier",
