@@ -6,13 +6,22 @@ from app.core.config import settings
 if "sqlite" in settings.DATABASE_URL:
     engine = create_async_engine(
         settings.DATABASE_URL,
-        connect_args={"check_same_thread": False}
+        connect_args={"check_same_thread": False},
+        future=True,
     )
 else:
+    # Supabase PostgreSQL / asyncpg configuration
     engine = create_async_engine(
         settings.DATABASE_URL,
         echo=False,
-        future=True
+        future=True,
+        pool_pre_ping=True,
+        pool_size=10,
+        max_overflow=20,
+        connect_args={
+            "statement_cache_size": 0,
+            "prepared_statement_cache_size": 0,
+        } if "asyncpg" in settings.DATABASE_URL else {},
     )
 
 # Async session maker
@@ -21,7 +30,7 @@ AsyncSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
     autocommit=False,
-    autoflush=False
+    autoflush=False,
 )
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

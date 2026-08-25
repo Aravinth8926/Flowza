@@ -1,716 +1,358 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useUserStore } from '../../store/user';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate, Link } from 'react-router-dom';
+import { analyticsService } from '../../services/analyticsService';
+import { DateRangePreset } from '../../types';
 import { useAuthStore } from '../../store/auth';
-import { useOrdersStore } from '../../store/orders';
-import { supplierService, SupplierSummary } from '../../services/supplierService';
-import { orderService } from '../../services/orderService';
-import { useWebSocket } from '../../hooks/useWebSocket';
 import { PageWrapper } from '../../components/layout/PageWrapper';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Progress } from '../../components/ui/Progress';
-import { Breadcrumb } from '../../components/ui/Breadcrumb';
+import { KPICard } from '../../components/dashboard/KPICard';
+import { DateRangeFilter } from '../../components/dashboard/DateRangeFilter';
+import { TrendChart } from '../../components/dashboard/TrendChart';
+import { StatusDistributionBar } from '../../components/dashboard/StatusDistributionBar';
+import { TopRankingCard } from '../../components/dashboard/TopRankingCard';
+import { AttentionPanel } from '../../components/dashboard/AttentionPanel';
+import { FinancialSummaryCard } from '../../components/dashboard/FinancialSummaryCard';
+import { DashboardSkeleton } from '../../components/dashboard/DashboardSkeleton';
+import { ErrorState } from '../../components/dashboard/ErrorState';
+import { Card, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { Dialog } from '../../components/ui/Dialog';
-import { Input } from '../../components/ui/Input';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../components/ui/Table';
-import { toast } from 'sonner';
 import {
-  Building,
-  MapPin,
-  Eye,
-  PlusCircle,
   ShoppingBag,
-  Bell,
-  CheckCircle2,
-  TrendingUp,
-  ShieldCheck,
   Clock,
-  Sparkles,
+  CheckCircle2,
+  IndianRupee,
+  Truck,
+  Building2,
+  Receipt,
+  ArrowRight,
   Package,
-  Search,
-  Star,
-  MessageSquare,
+  PlusCircle,
 } from 'lucide-react';
+
+const STATUS_BADGE_MAP: Record<string, { label: string; variant: 'warning' | 'indigo' | 'cyan' | 'secondary' | 'success' | 'destructive' }> = {
+  PENDING: { label: 'Pending', variant: 'warning' },
+  ACCEPTED: { label: 'Accepted', variant: 'indigo' },
+  PROCESSING: { label: 'Processing', variant: 'indigo' },
+  PACKED: { label: 'Packed', variant: 'cyan' },
+  SHIPPED: { label: 'Shipped', variant: 'cyan' },
+  DELIVERED: { label: 'Delivered', variant: 'secondary' },
+  COMPLETED: { label: 'Completed', variant: 'success' },
+  REJECTED: { label: 'Rejected', variant: 'destructive' },
+  CANCELLED: { label: 'Cancelled', variant: 'secondary' },
+};
 
 export const VendorDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { company, address, fetchCompany, fetchAddress } = useUserStore();
-  const { orders, createOrder } = useOrdersStore();
+  const [preset, setPreset] = useState<DateRangePreset>('30d');
 
-  // Suppliers state
-  const [suppliersList, setSuppliersList] = useState<SupplierSummary[]>([]);
-  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
-
-  // Modals state
-  const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isBrowseOpen, setIsBrowseOpen] = useState(false);
-
-  // New Order Form state
-  const [orderSupplierId, setOrderSupplierId] = useState('');
-  const [orderSupplierName, setOrderSupplierName] = useState('');
-  const [orderItem, setOrderItem] = useState('');
-  const [orderQty, setOrderQty] = useState('');
-  const [orderBudget, setOrderBudget] = useState('');
-  const [orderUrgency, setOrderUrgency] = useState('Normal Delivery (3-5 days)');
-
-  // History Filter state
-  const [historySearch, setHistorySearch] = useState('');
-  const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('ALL');
-
-  // Load suppliers function
-  const loadSuppliers = useCallback(async () => {
-    setLoadingSuppliers(true);
-    try {
-      const data = await supplierService.getSuppliers();
-      setSuppliersList(data);
-      if (data.length > 0 && !orderSupplierName) {
-        setOrderSupplierId(data[0].id);
-        setOrderSupplierName(data[0].company_name);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoadingSuppliers(false);
-    }
-  }, [orderSupplierName]);
-
-  // Real-time WebSocket Event Handler
-  const handleWebSocketMessage = useCallback((msg: any) => {
-    if (msg.type === 'new_supplier') {
-      toast.info(`🎉 New supplier joined: ${msg.data.company_name} (${msg.data.city})`, {
-        duration: 5000,
-      });
-      loadSuppliers();
-    } else if (msg.type === 'order_status_updated') {
-      const statusMsg =
-        msg.data.status === 'accepted'
-          ? `✅ Your purchase order ${msg.data.id} was accepted by the supplier!`
-          : msg.data.status === 'rejected'
-          ? `❌ Your purchase order ${msg.data.id} was declined by the supplier.`
-          : `ℹ️ Order status updated: ${msg.data.status}`;
-      toast.info(statusMsg, { duration: 6000 });
-    }
-  }, [loadSuppliers]);
-
-  useWebSocket(handleWebSocketMessage);
-
-  useEffect(() => {
-    fetchCompany().catch(() => {});
-    fetchAddress().catch(() => {});
-    loadSuppliers();
-
-    // Fallback Polling (Every 30s)
-    const pollInterval = setInterval(() => {
-      loadSuppliers();
-    }, 30000);
-
-    return () => clearInterval(pollInterval);
-  }, [fetchCompany, fetchAddress, loadSuppliers]);
-
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['analytics', 'vendor', 'overview', preset],
+    queryFn: () => analyticsService.getVendorOverview({ preset }),
+    staleTime: 60 * 1000,
   });
 
-  const lowStockItems = [
-    { name: 'Organic Rice (25kg Bag)', stock: 4, minStock: 20, supplier: 'GreenEarth Organics' },
-    { name: 'Cold-pressed Sunflower Oil (5L)', stock: 2, minStock: 15, supplier: 'SunPure Distributors' },
-  ];
+  if (isLoading) {
+    return (
+      <PageWrapper title="Vendor Dashboard">
+        <DashboardSkeleton />
+      </PageWrapper>
+    );
+  }
 
-  const handleCreateOrderSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!orderItem || !orderQty) {
-      toast.error('Please enter product item and quantity');
-      return;
-    }
+  if (isError || !data) {
+    return (
+      <PageWrapper title="Vendor Dashboard">
+        <ErrorState onRetry={() => refetch()} />
+      </PageWrapper>
+    );
+  }
 
-    const selectedSup = suppliersList.find((s) => s.id === orderSupplierId || s.company_name === orderSupplierName) || suppliersList[0];
-    const supName = selectedSup ? selectedSup.company_name : orderSupplierName || 'GreenEarth Organics';
-    const supId = selectedSup ? selectedSup.id : orderSupplierId;
+  const {
+    kpis,
+    order_status_distribution,
+    procurement_trend,
+    top_suppliers,
+    outstanding_invoices,
+    recent_orders,
+    attention_items,
+  } = data;
 
-    // Save to local Zustand store
-    const created = createOrder({
-      vendorName: company?.company_name || user?.full_name || 'Vendor Enterprise',
-      supplierName: supName,
-      items: `${orderQty}x ${orderItem}`,
-      total: orderBudget ? `₹${parseInt(orderBudget).toLocaleString('en-IN')}` : '₹15,000',
-      urgency: orderUrgency,
-    });
-
-    // Send API request if backend is connected
-    orderService.createOrder({
-      supplier_id: supId,
-      title: `${orderQty}x ${orderItem}`,
-      items: [{ product_name: orderItem, quantity: parseInt(orderQty) || 10, estimated_price: parseFloat(orderBudget) || 1500 }],
-      priority: orderUrgency.includes('Urgent') ? 'urgent' : orderUrgency.includes('Priority') ? 'high' : 'medium',
-      delivery_address: address ? `${address.address_line}, ${address.city}` : 'Vendor Office',
-    }).catch(() => {});
-
-    setIsNewOrderOpen(false);
-    toast.success(`Purchase Order ${created.id} sent to ${supName}! Status set to Pending.`);
-
-    // Reset form
-    setOrderItem('');
-    setOrderQty('');
-    setOrderBudget('');
+  const formatCurrency = (val: number | string) => {
+    const num = Number(val || 0);
+    return `₹${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const filteredHistory = orders.filter((o) => {
-    const matchesSearch =
-      o.id.toLowerCase().includes(historySearch.toLowerCase()) ||
-      o.supplierName.toLowerCase().includes(historySearch.toLowerCase()) ||
-      o.items.toLowerCase().includes(historySearch.toLowerCase());
-    const matchesStatus = historyStatusFilter === 'ALL' || o.status === historyStatusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
   return (
-    <PageWrapper>
+    <PageWrapper title="Vendor Dashboard">
       <div className="space-y-8">
-        <Breadcrumb items={[{ label: 'Vendor Workspace', active: true }]} />
+        {/* Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-heading tracking-tight">
+              Procurement & Spend Analytics
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Authoritative overview of your procurement spend, supplier orders, and outstanding invoices.
+            </p>
+          </div>
 
-        {/* Welcome Banner */}
-        <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 text-white p-6 md:p-8 shadow-2xl glow-emerald">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass-panel border-emerald-500/30 text-emerald-400 mb-3 font-mono">
-                <ShieldCheck size={14} className="text-emerald-400" />
-                <span>VERIFIED ENTERPRISE VENDOR WORKSPACE</span>
-              </div>
-              <h1 className="font-heading text-3xl md:text-4xl font-extrabold tracking-tight">
-                Welcome back, {company?.company_name || user?.full_name || 'Vendor'}
-              </h1>
-              <p className="text-slate-400 text-xs mt-1 font-mono">{currentDate}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="primary"
-                glow
-                onClick={() => navigate('/dashboard/vendor/orders/new')}
-                className="font-heading font-semibold text-xs"
-              >
-                <PlusCircle size={15} className="mr-1.5" /> Request New Order
-              </Button>
-            </div>
+          <div className="flex items-center gap-3 self-start sm:self-center">
+            <DateRangeFilter
+              selectedPreset={preset}
+              onSelectPreset={(newPreset) => setPreset(newPreset)}
+            />
           </div>
         </div>
 
-        {/* Stats Metrics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-heading">Active Wholesale Suppliers</p>
-                <h3 className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white mt-1">{suppliersList.length}</h3>
-                <p className="text-[11px] font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
-                  <TrendingUp size={12} /> Live Network
-                </p>
-              </div>
-              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                <Building size={22} />
-              </div>
-            </div>
-          </Card>
+        {/* 8 KPI Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <KPICard
+            label="Total Orders Placed"
+            value={kpis.total_orders}
+            icon={<ShoppingBag size={20} />}
+            trendPct={kpis.orders_trend_pct}
+            iconBgClass="bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/60"
+          />
 
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-heading">Total Purchase Orders</p>
-                <h3 className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white mt-1">{orders.length}</h3>
-                <p className="text-[11px] font-bold font-mono text-indigo-500 mt-1">Active Pipeline</p>
-              </div>
-              <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20">
-                <ShoppingBag size={22} />
-              </div>
-            </div>
-          </Card>
+          <KPICard
+            label="Active Orders"
+            value={kpis.active_orders}
+            icon={<Clock size={20} />}
+            description="Orders in progress"
+            iconBgClass="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/60"
+          />
 
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-heading">Monthly Procurement</p>
-                <h3 className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white mt-1">₹1,45,000</h3>
-                <p className="text-[11px] font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">72% Budget Utilized</p>
-              </div>
-              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                <TrendingUp size={22} />
-              </div>
-            </div>
-          </Card>
+          <KPICard
+            label="Completed Orders"
+            value={kpis.completed_orders}
+            icon={<CheckCircle2 size={20} />}
+            description="Delivered & confirmed"
+            iconBgClass="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60"
+          />
 
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-heading">GST Compliance</p>
-                <h3 className="text-base font-extrabold font-heading text-emerald-600 dark:text-emerald-400 mt-1">VERIFIED VENDOR</h3>
-                <p className="text-[11px] font-mono text-slate-400 mt-0.5">Role: Vendor</p>
-              </div>
-              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                <CheckCircle2 size={22} />
-              </div>
-            </div>
-          </Card>
+          <KPICard
+            label="Total Procurement Spend"
+            value={formatCurrency(kpis.total_procurement_value)}
+            icon={<IndianRupee size={20} />}
+            trendPct={kpis.procurement_trend_pct}
+            iconBgClass="bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800/60"
+          />
+
+          <KPICard
+            label="Total Paid Bills"
+            value={formatCurrency(kpis.total_paid)}
+            icon={<CheckCircle2 size={20} />}
+            description="Settled to suppliers"
+            iconBgClass="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60"
+          />
+
+          <KPICard
+            label="Outstanding Payables"
+            value={formatCurrency(kpis.outstanding_payables)}
+            icon={<IndianRupee size={20} />}
+            description="Pending balance due"
+            iconBgClass="bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/60"
+          />
+
+          <KPICard
+            label="Active Suppliers"
+            value={kpis.active_suppliers_count}
+            icon={<Building2 size={20} />}
+            description="Trading supplier partners"
+            iconBgClass="bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800/60"
+          />
+
+          <KPICard
+            label="Pending Deliveries"
+            value={kpis.pending_deliveries}
+            icon={<Truck size={20} />}
+            description="Packed or in transit"
+            iconBgClass="bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 border-teal-200 dark:border-teal-800/60"
+          />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left 2 Cols */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Vendor Quick Actions Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base font-bold">Vendor Quick Actions</CardTitle>
-                <CardDescription className="text-xs">Quick shortcuts for order placement and supplier discovery</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap items-center gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsBrowseOpen(true)}
-                  className="flex items-center gap-2 rounded-lg text-xs font-semibold"
-                >
-                  <ShoppingBag size={15} />
-                  Browse Suppliers ({suppliersList.length})
-                </Button>
+        {/* Actionable Alerts Panel */}
+        {attention_items && attention_items.length > 0 && (
+          <AttentionPanel items={attention_items} title="Priority Vendor Action Items" />
+        )}
 
-                <Button
-                  onClick={() => navigate('/dashboard/vendor/orders/new')}
-                  className="flex items-center gap-2 rounded-lg text-xs font-semibold shadow-xs bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <PlusCircle size={15} />
-                  New Purchase Order Request
-                </Button>
+        {/* Main Charts & Breakdown Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <TrendChart
+            title="Procurement Spend & Payment Flow"
+            description="Daily trend of procurement purchase value vs invoice payments"
+            data={procurement_trend}
+            primaryKey="procurement_value"
+            secondaryKey="collected_amount"
+            primaryLabel="Procurement Spend (₹)"
+            secondaryLabel="Payments (₹)"
+            className="lg:col-span-2"
+          />
 
-                <Button
-                  variant="secondary"
-                  onClick={() => navigate('/dashboard/vendor/orders')}
-                  className="flex items-center gap-2 rounded-lg text-xs font-semibold"
-                >
-                  <Eye size={15} />
-                  Sent Orders Tracker ({orders.length})
-                </Button>
-              </CardContent>
-            </Card>
+          <StatusDistributionBar
+            distribution={order_status_distribution}
+            title="Procurement Lifecycle Breakdown"
+          />
+        </div>
 
-            {/* Live Purchase Orders Status Stream */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-200/60 dark:border-[#1e293b]">
-                <div>
-                  <CardTitle className="text-base font-bold">Recent Purchase Orders & Supplier Responses</CardTitle>
-                  <CardDescription className="text-xs">Real-time status updates from suppliers (Accepted, Rejected, Counter-offers)</CardDescription>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => setIsHistoryOpen(true)} className="text-xxs">
-                  View All ({orders.length})
-                </Button>
-              </CardHeader>
-              <CardContent className="pt-6">
+        {/* Financial Flow & Top Suppliers */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <FinancialSummaryCard
+            invoiced={kpis.total_procurement_value}
+            collected={kpis.total_paid}
+            outstanding={kpis.outstanding_payables}
+            role="vendor"
+          />
+
+          <TopRankingCard
+            title="Top Supplier Partners"
+            type="suppliers"
+            items={top_suppliers}
+            viewAllLink="/dashboard/vendor/suppliers"
+          />
+        </div>
+
+        {/* Outstanding Invoices & Recent Orders Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Outstanding Invoices Panel */}
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Receipt size={18} className="text-primary-500" />
+                Outstanding Bills & Invoices
+              </CardTitle>
+              <Link
+                to="/dashboard/vendor/invoices"
+                className="text-xs font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 flex items-center gap-1 transition-colors"
+              >
+                View all bills <ArrowRight size={13} />
+              </Link>
+            </div>
+
+            {outstanding_invoices && outstanding_invoices.length > 0 ? (
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>PO ID</TableHead>
+                      <TableHead>Invoice</TableHead>
                       <TableHead>Supplier</TableHead>
-                      <TableHead>Items Requested</TableHead>
-                      <TableHead>Total Value</TableHead>
-                      <TableHead>Status & Supplier Feedback</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Balance</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders.slice(0, 5).map((ord) => (
-                      <TableRow key={ord.id}>
-                        <TableCell className="font-mono text-xs font-bold text-slate-900 dark:text-[#f1f5f9]">{ord.id}</TableCell>
-                        <TableCell className="font-semibold text-xs text-slate-800 dark:text-[#e2e8f0]">{ord.supplierName}</TableCell>
-                        <TableCell className="text-xs text-slate-600 dark:text-[#8896ab]">{ord.items}</TableCell>
-                        <TableCell className="font-bold text-xs text-slate-900 dark:text-[#f1f5f9]">{ord.total}</TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <Badge
-                              variant={
-                                ord.status === 'Accepted' || ord.status === 'Dispatched' || ord.status === 'Delivered'
-                                  ? 'success'
-                                  : ord.status === 'Processing'
-                                  ? 'primary'
-                                  : ord.status === 'Rejected'
-                                  ? 'destructive'
-                                  : ord.status === 'Changes Suggested'
-                                  ? 'accent'
-                                  : 'warning'
-                              }
-                              className="text-xxs"
-                            >
-                              {ord.status}
-                            </Badge>
-                            {ord.supplierNotes && (
-                              <div className="text-xxs text-slate-700 dark:text-[#e2e8f0] bg-slate-100 dark:bg-[#151d2e] p-1.5 rounded border border-slate-200/50 dark:border-[#1e293b] flex items-start gap-1">
-                                <MessageSquare size={11} className="text-blue-500 shrink-0 mt-0.5" />
-                                <span>"{ord.supplierNotes}"</span>
-                              </div>
-                            )}
-                          </div>
+                    {outstanding_invoices.map((inv) => (
+                      <TableRow key={inv.id}>
+                        <TableCell className="font-mono font-bold text-xs text-primary-600 dark:text-primary-400">
+                          {inv.invoice_number}
+                        </TableCell>
+                        <TableCell className="font-medium text-xs text-slate-800 dark:text-slate-200">
+                          {inv.counterpart_company_name}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-slate-500">
+                          ₹{Number(inv.total_amount).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="font-mono font-bold text-xs text-rose-600 dark:text-rose-400">
+                          ₹{Number(inv.balance_due).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link
+                            to="/dashboard/vendor/invoices"
+                            className="text-xs font-semibold text-primary-600 hover:underline inline-flex items-center gap-1"
+                          >
+                            Pay <ArrowRight size={12} />
+                          </Link>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
+              </div>
+            ) : (
+              <div className="h-44 flex flex-col items-center justify-center text-slate-400 text-xs">
+                <CheckCircle2 size={24} className="mb-2 text-emerald-500 opacity-60" />
+                All supplier invoices have been fully settled!
+              </div>
+            )}
+          </Card>
 
-            {/* AI Low Stock Alerts */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-200/60 dark:border-[#1e293b]">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="text-amber-500" size={18} />
-                  <div>
-                    <CardTitle className="text-base font-bold">AI Inventory Replenishment Alert</CardTitle>
-                    <CardDescription className="text-xs">Items approaching safety threshold</CardDescription>
-                  </div>
-                </div>
-                <Badge variant="warning" className="text-xxs">2 Items Low</Badge>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-4">
-                {lowStockItems.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-xl bg-slate-50 dark:bg-[#151d2e] border border-slate-200/60 dark:border-[#1e293b] space-y-3"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-[#f1f5f9] flex items-center gap-2">
-                          <Package size={14} className="text-amber-500" />
-                          {item.name}
-                        </h4>
-                        <p className="text-xxs text-slate-500 dark:text-[#8896ab] mt-0.5">Supplier: {item.supplier}</p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const sup = suppliersList.find((s) => s.company_name === item.supplier) || suppliersList[0];
-                          if (sup) {
-                            setOrderSupplierId(sup.id);
-                            setOrderSupplierName(sup.company_name);
-                          }
-                          setOrderItem(item.name);
-                          setOrderQty('20');
-                          setIsNewOrderOpen(true);
-                        }}
-                        className="text-xxs font-semibold h-7 px-2.5"
-                      >
-                        Auto Restock
-                      </Button>
-                    </div>
-                    <Progress
-                      label={`Stock: ${item.stock} / Minimum safety stock: ${item.minStock}`}
-                      value={(item.stock / item.minStock) * 100}
-                      variant="warning"
-                      size="sm"
-                      showLabel
-                    />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
+          {/* Recent Orders Table */}
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <ShoppingBag size={18} className="text-primary-500" />
+                Recent Procurement Orders
+              </CardTitle>
+              <Link
+                to="/dashboard/vendor/orders"
+                className="text-xs font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 flex items-center gap-1 transition-colors"
+              >
+                View all orders <ArrowRight size={13} />
+              </Link>
+            </div>
 
-          {/* Right Col */}
-          <div className="lg:col-span-1 space-y-8">
-            <Card>
-              <CardHeader className="border-b border-slate-200/60 dark:border-[#1e293b] pb-3">
-                <CardTitle className="text-base font-bold">Procurement Spend Budget</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-4">
-                <Progress label="Monthly Spending Limit (₹2,00,000)" value={72} variant="primary" showLabel />
-                <p className="text-xxs text-slate-500 dark:text-[#8896ab]">
-                  ₹1,45,000 allocated across {suppliersList.length} verified supplier contracts.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="border-b border-slate-200/60 dark:border-[#1e293b] pb-3">
-                <CardTitle className="text-base font-bold flex items-center justify-between">
-                  <span>Activity Log</span>
-                  <Bell size={16} className="text-blue-500" />
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-3">
-                {orders.slice(0, 3).map((ord) => (
-                  <div key={ord.id} className="flex items-start gap-3 p-3 rounded-xl bg-slate-100/60 dark:bg-[#151d2e]">
-                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-[#1c2740] text-blue-600 dark:text-blue-400 shrink-0">
-                      <Clock size={16} />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-[#f1f5f9]">{ord.id} ({ord.status})</h4>
-                      <p className="text-xxs text-slate-500 dark:text-[#8896ab] mt-0.5">{ord.items} to {ord.supplierName}</p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
+            {recent_orders && recent_orders.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order</TableHead>
+                      <TableHead>Supplier</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recent_orders.map((ord) => {
+                      const st = STATUS_BADGE_MAP[ord.status] || { label: ord.status, variant: 'secondary' };
+                      return (
+                        <TableRow key={ord.id}>
+                          <TableCell className="font-mono font-bold text-xs text-primary-600 dark:text-primary-400">
+                            {ord.order_number}
+                          </TableCell>
+                          <TableCell className="font-medium text-xs text-slate-800 dark:text-slate-200">
+                            {ord.counterpart_company_name}
+                          </TableCell>
+                          <TableCell className="font-mono font-bold text-xs">
+                            ₹{Number(ord.total_amount).toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={st.variant} className="text-[10px] px-2 py-0.5">
+                              {st.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Link
+                              to="/dashboard/vendor/orders"
+                              className="text-xs font-semibold text-primary-600 hover:underline inline-flex items-center gap-1"
+                            >
+                              Track <ArrowRight size={12} />
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="h-44 flex flex-col items-center justify-center text-slate-400 text-xs">
+                <ShoppingBag size={24} className="mb-2 opacity-50" />
+                No procurement orders placed yet.
+              </div>
+            )}
+          </Card>
         </div>
       </div>
-
-      {/* MODAL 1: Create Order Request */}
-      <Dialog
-        isOpen={isNewOrderOpen}
-        onClose={() => setIsNewOrderOpen(false)}
-        title="Request New Purchase Order to Supplier"
-        description="Select a registered supplier from the live B2B network and submit order details"
-        size="lg"
-      >
-        <form onSubmit={handleCreateOrderSubmit} className="space-y-4 pt-2">
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-bold text-slate-700 dark:text-[#8896ab]">
-                Select Live Registered Supplier ({suppliersList.length} Active)
-              </label>
-              <span className="text-xxs font-semibold text-emerald-500 flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Real-Time
-              </span>
-            </div>
-            <select
-              value={orderSupplierId}
-              onChange={(e) => {
-                const selected = suppliersList.find((s) => s.id === e.target.value);
-                setOrderSupplierId(e.target.value);
-                if (selected) setOrderSupplierName(selected.company_name);
-              }}
-              className="w-full rounded-md border border-slate-300 dark:border-[#1e293b] bg-white dark:bg-[#111827] px-3 py-2 text-xs font-semibold text-slate-900 dark:text-[#f1f5f9]"
-            >
-              {suppliersList.map((sup) => (
-                <option key={sup.id} value={sup.id}>
-                  {sup.company_name} ({sup.business_type} • {sup.city}, {sup.state})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-[#8896ab] mb-1">Product / Item Name</label>
-              <Input
-                placeholder="e.g. Organic Basmati Rice (25kg Bag)"
-                value={orderItem}
-                onChange={(e) => setOrderItem(e.target.value)}
-                className="text-xs"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-[#8896ab] mb-1">Quantity & Unit</label>
-              <Input
-                placeholder="e.g. 50 Bags"
-                value={orderQty}
-                onChange={(e) => setOrderQty(e.target.value)}
-                className="text-xs"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-[#8896ab] mb-1">Estimated Budget (₹)</label>
-              <Input
-                placeholder="e.g. 45000"
-                type="number"
-                value={orderBudget}
-                onChange={(e) => setOrderBudget(e.target.value)}
-                className="text-xs"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-[#8896ab] mb-1">Urgency Priority</label>
-              <select
-                value={orderUrgency}
-                onChange={(e) => setOrderUrgency(e.target.value)}
-                className="w-full rounded-md border border-slate-300 dark:border-[#1e293b] bg-white dark:bg-[#111827] px-3 py-2 text-xs font-semibold text-slate-900 dark:text-[#f1f5f9]"
-              >
-                <option value="Normal Delivery (3-5 days)">Normal Delivery (3-5 days)</option>
-                <option value="Priority Delivery (1-2 days)">Priority Delivery (1-2 days)</option>
-                <option value="Urgent Express (Same Day)">Urgent Express (Same Day)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-[#1e293b]">
-            <Button type="button" variant="outline" size="sm" onClick={() => setIsNewOrderOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold">
-              Send Order Request to Supplier
-            </Button>
-          </div>
-        </form>
-      </Dialog>
-
-      {/* MODAL 2: View Orders History */}
-      <Dialog
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        title="Purchase Orders History & Status Tracker"
-        description="Track real-time supplier responses (Accepted, Rejected, Changes Suggested)"
-        size="xl"
-      >
-        <div className="space-y-4 pt-1">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="w-full sm:w-64 relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <Input
-                placeholder="Search orders, suppliers..."
-                value={historySearch}
-                onChange={(e) => setHistorySearch(e.target.value)}
-                className="pl-9 py-1.5 text-xs"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-1 text-xxs font-bold">
-              {(['ALL', 'Pending', 'Accepted', 'Processing', 'Dispatched', 'Delivered', 'Changes Suggested', 'Rejected'] as const).map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setHistoryStatusFilter(st)}
-                  className={`px-2 py-1 rounded cursor-pointer transition-colors ${
-                    historyStatusFilter === st
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 dark:bg-[#151d2e] text-slate-600 dark:text-[#8896ab] hover:bg-slate-200'
-                  }`}
-                >
-                  {st}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>PO Number</TableHead>
-                <TableHead>Supplier Name</TableHead>
-                <TableHead>Items Requested</TableHead>
-                <TableHead>Total Value</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status & Supplier Response</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredHistory.length > 0 ? (
-                filteredHistory.map((ord) => (
-                  <TableRow key={ord.id}>
-                    <TableCell className="font-mono text-xs font-bold text-slate-900 dark:text-[#f1f5f9]">{ord.id}</TableCell>
-                    <TableCell className="font-semibold text-xs text-slate-800 dark:text-[#e2e8f0]">{ord.supplierName}</TableCell>
-                    <TableCell className="text-xs text-slate-600 dark:text-[#8896ab]">{ord.items}</TableCell>
-                    <TableCell className="font-bold text-xs text-slate-900 dark:text-[#f1f5f9]">{ord.total}</TableCell>
-                    <TableCell className="text-xxs text-slate-500">{ord.date}</TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <Badge
-                          variant={
-                            ord.status === 'Accepted' || ord.status === 'Dispatched' || ord.status === 'Delivered'
-                              ? 'success'
-                              : ord.status === 'Processing'
-                              ? 'primary'
-                              : ord.status === 'Rejected'
-                              ? 'destructive'
-                              : ord.status === 'Changes Suggested'
-                              ? 'accent'
-                              : 'warning'
-                          }
-                          className="text-xxs"
-                        >
-                          {ord.status}
-                        </Badge>
-                        {ord.supplierNotes && (
-                          <div className="text-xxs text-slate-700 dark:text-[#e2e8f0] bg-slate-100 dark:bg-[#151d2e] p-1.5 rounded border border-slate-200/60 dark:border-[#1e293b] flex items-start gap-1">
-                            <MessageSquare size={11} className="text-blue-500 shrink-0 mt-0.5" />
-                            <span>Supplier Note: "{ord.supplierNotes}"</span>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6 text-slate-400 text-xs">
-                    No purchase orders found matching filter criteria.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-
-          <div className="flex justify-end pt-3">
-            <Button variant="outline" size="sm" onClick={() => setIsHistoryOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </div>
-      </Dialog>
-
-      {/* MODAL 3: Browse Verified Suppliers */}
-      <Dialog
-        isOpen={isBrowseOpen}
-        onClose={() => setIsBrowseOpen(false)}
-        title="Live Verified Wholesale Suppliers Network"
-        description="Connect and send purchase order requests directly to registered suppliers"
-        size="xl"
-      >
-        <div className="space-y-4 pt-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {suppliersList.map((sup) => (
-              <div
-                key={sup.id}
-                className="p-4 rounded-xl border border-slate-200 dark:border-[#1e293b] bg-slate-50/50 dark:bg-[#111827] space-y-3"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-[#f1f5f9]">{sup.company_name}</h3>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">{sup.business_type}</p>
-                    <p className="text-xxs text-slate-500 dark:text-[#8896ab] flex items-center gap-1 mt-1">
-                      <MapPin size={12} /> {sup.city}, {sup.state}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs font-bold text-amber-500 bg-amber-50 dark:bg-[hsl(38_92%_18%_/0.4)] px-2 py-0.5 rounded-full border border-amber-200 dark:border-[hsl(38_92%_28%_/0.4)]">
-                    <Star size={12} className="fill-amber-500" />
-                    {sup.rating || 4.9}
-                  </div>
-                </div>
-
-                <p className="text-xxs text-slate-500 dark:text-[#8896ab] line-clamp-2">
-                  {sup.description}
-                </p>
-
-                <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-[#1e293b]">
-                  <span className="text-xxs text-slate-500 dark:text-[#8896ab]">
-                    {sup.total_orders || 0} orders fulfilled
-                  </span>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setIsBrowseOpen(false);
-                      setOrderSupplierId(sup.id);
-                      setOrderSupplierName(sup.company_name);
-                      setIsNewOrderOpen(true);
-                    }}
-                    className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold h-8 px-3"
-                  >
-                    Send PO Request
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-end pt-2">
-            <Button variant="outline" size="sm" onClick={() => setIsBrowseOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </div>
-      </Dialog>
     </PageWrapper>
   );
 };

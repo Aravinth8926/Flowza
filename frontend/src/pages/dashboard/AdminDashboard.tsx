@@ -1,217 +1,315 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { analyticsService } from '../../services/analyticsService';
+import { DateRangePreset } from '../../types';
 import { PageWrapper } from '../../components/layout/PageWrapper';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
-import { Progress } from '../../components/ui/Progress';
-import { Input } from '../../components/ui/Input';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../components/ui/Table';
-import { Users, Truck, Store, ShieldCheck, Database, Server, Search, Activity, Cpu, HardDrive } from 'lucide-react';
+import { KPICard } from '../../components/dashboard/KPICard';
+import { DateRangeFilter } from '../../components/dashboard/DateRangeFilter';
+import { TrendChart } from '../../components/dashboard/TrendChart';
+import { StatusDistributionBar } from '../../components/dashboard/StatusDistributionBar';
+import { TopRankingCard } from '../../components/dashboard/TopRankingCard';
+import { DashboardSkeleton } from '../../components/dashboard/DashboardSkeleton';
+import { ErrorState } from '../../components/dashboard/ErrorState';
+import { Card, CardTitle, CardHeader, CardContent } from '../../components/ui/Card';
+import {
+  Users,
+  Building2,
+  Store,
+  Truck,
+  Package,
+  ShoppingBag,
+  IndianRupee,
+  CheckCircle2,
+  Activity,
+  ShieldCheck,
+  Server,
+  AlertTriangle,
+  AlertOctagon,
+  Clock,
+} from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [logFilter, setLogFilter] = useState<'ALL' | 'SYSTEM' | 'AUTH' | 'DB'>('ALL');
+  const [preset, setPreset] = useState<DateRangePreset>('30d');
 
-  const stats = [
-    { label: 'Total Registered Users', value: 3, icon: <Users size={22} className="text-blue-500" /> },
-    { label: 'Active Vendors', value: 2, icon: <Store size={22} className="text-indigo-500" /> },
-    { label: 'Active Suppliers', value: 1, icon: <Truck size={22} className="text-emerald-500" /> },
-  ];
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['analytics', 'admin', 'overview', preset],
+    queryFn: () => analyticsService.getAdminOverview({ preset }),
+    staleTime: 60 * 1000,
+  });
 
-  const systemHealth = [
-    { name: 'FastAPI Backend Core', status: 'Healthy', load: 18, icon: <Server size={16} className="text-emerald-500" /> },
-    { name: 'SQLite Database Session', status: 'Connected', load: 32, icon: <Database size={16} className="text-emerald-500" /> },
-    { name: 'JWT Auth Security Subsystem', status: 'Active', load: 8, icon: <ShieldCheck size={16} className="text-emerald-500" /> },
-  ];
+  if (isLoading) {
+    return (
+      <PageWrapper title="Platform Administration">
+        <DashboardSkeleton />
+      </PageWrapper>
+    );
+  }
 
-  const userDirectory = [
-    { name: 'Flowza Admin', email: 'admin@flowza.com', role: 'admin', status: 'Active' },
-    { name: 'Test Vendor', email: 'testvendor@example.com', role: 'vendor', status: 'Active' },
-    { name: 'New Supplier', email: 'user_1785320153@example.com', role: 'supplier', status: 'Active' },
-  ];
+  if (isError || !data) {
+    return (
+      <PageWrapper title="Platform Administration">
+        <ErrorState onRetry={() => refetch()} />
+      </PageWrapper>
+    );
+  }
 
-  const filteredUsers = userDirectory.filter(
-    (u) =>
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const {
+    kpis,
+    user_role_breakdown,
+    company_type_breakdown,
+    order_status_distribution,
+    platform_financial_trend,
+    operational_health,
+    top_active_suppliers,
+  } = data;
 
-  const logs = [
-    { type: 'SYSTEM', text: '[SYSTEM] Backend core running on port 8000 (0.4ms latency)', color: 'text-emerald-400' },
-    { type: 'AUTH', text: '[AUTH] JWT secret validation operational - 0 active revocations', color: 'text-blue-400' },
-    { type: 'DB', text: '[DB] Session pool initialised (Active connections: 4/20)', color: 'text-purple-400' },
-    { type: 'SYSTEM', text: '[SYSTEM] Automated health check passed (100% uptime)', color: 'text-emerald-400' },
-  ];
-
-  const filteredLogs = logFilter === 'ALL' ? logs : logs.filter((l) => l.type === logFilter);
+  const formatCurrency = (val: number | string) => {
+    const num = Number(val || 0);
+    return `₹${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   return (
-    <PageWrapper title="Flowza System Administration">
+    <PageWrapper title="Platform Administration">
       <div className="space-y-8">
-        {/* Stat Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {stats.map((stat, idx) => (
-            <Card key={idx} className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-heading">{stat.label}</p>
-                  <h3 className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white mt-1">{stat.value}</h3>
-                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono font-bold mt-1 flex items-center gap-1">
-                    <Activity size={12} className="animate-pulse" /> 100% Operational
-                  </p>
-                </div>
-                <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
-                  {stat.icon}
-                </div>
-              </div>
-            </Card>
-          ))}
+        {/* Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-heading tracking-tight">
+              Platform Administration & System Health
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Real-time platform metrics, supply-chain flow, company distribution, and operational diagnostics.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 self-start sm:self-center">
+            <DateRangeFilter
+              selectedPreset={preset}
+              onSelectPreset={(newPreset) => setPreset(newPreset)}
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Col: User Directory */}
-          <div className="lg:col-span-2 space-y-8">
-            <Card className="glass-card">
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 dark:border-slate-800 pb-4">
-                <div>
-                  <CardTitle className="text-base font-bold">Platform User Directory</CardTitle>
-                  <CardDescription className="text-xs">Registered system users and role permissions</CardDescription>
-                </div>
-                <div className="w-full sm:w-64 relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  <Input
-                    placeholder="Search users..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 py-1.5 text-xs"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.length > 0 ? (
-                      filteredUsers.map((usr, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="font-semibold text-slate-900 dark:text-white">{usr.name}</TableCell>
-                          <TableCell className="text-slate-500 dark:text-slate-400 font-mono text-xs">{usr.email}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={usr.role === 'admin' ? 'destructive' : usr.role === 'vendor' ? 'primary' : 'success'}
-                              className="text-xxs uppercase tracking-wider font-bold"
-                            >
-                              {usr.role}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <span className="inline-flex items-center gap-1 text-emerald-500 font-bold text-xxs">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              {usr.status}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-6 text-slate-400 text-xs">
-                          No users found matching "{searchTerm}"
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+        {/* 8 Admin KPI Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <KPICard
+            label="Total Platform Users"
+            value={kpis.total_users}
+            icon={<Users size={20} />}
+            description="Verified authenticated accounts"
+            iconBgClass="bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/60"
+          />
 
-            {/* Server Resource Metrics */}
-            <Card className="glass-card">
-              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 pb-3">
-                <CardTitle className="text-base font-bold flex items-center justify-between">
-                  <span>Infrastructure Utilization</span>
-                  <Cpu size={18} className="text-blue-500" />
-                </CardTitle>
-                <CardDescription className="text-xs">Live server CPU & memory load stats</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-5">
-                <div>
-                  <Progress label="CPU Core Utilization" value={24} variant="primary" showLabel animated />
-                </div>
-                <div>
-                  <Progress label="RAM Memory Pool (4GB / 16GB)" value={38} variant="info" showLabel />
-                </div>
-                <div>
-                  <Progress label="Database Storage Disk Usage" value={15} variant="success" showLabel />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <KPICard
+            label="Registered Companies"
+            value={kpis.total_companies}
+            icon={<Building2 size={20} />}
+            description={`${kpis.supplier_companies_count} suppliers, ${kpis.vendor_companies_count} vendors`}
+            iconBgClass="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/60"
+          />
 
-          {/* Right Col: System Diagnostics */}
-          <div className="lg:col-span-1 space-y-8">
-            <Card className="glass-card">
-              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 pb-4">
-                <CardTitle className="text-base font-bold">System Health & Services</CardTitle>
-                <CardDescription className="text-xs">Real-time status of underlying infrastructure</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-4">
-                {systemHealth.map((sys, idx) => (
-                  <div key={idx} className="space-y-1.5 border-b border-slate-100 dark:border-slate-800 pb-3 last:border-0 last:pb-0">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {sys.icon}
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{sys.name}</span>
-                      </div>
-                      <Badge variant="success" className="text-xxs px-2 py-0.5">
-                        {sys.status}
-                      </Badge>
-                    </div>
-                    <Progress value={sys.load} variant="success" size="sm" />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+          <KPICard
+            label="Catalog Products"
+            value={kpis.total_products}
+            icon={<Package size={20} />}
+            description="Active supplier inventory SKUs"
+            iconBgClass="bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800/60"
+          />
 
-            <Card className="glass-card">
-              <CardHeader className="pb-3 border-b border-slate-200/60 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-bold">Real-time Event Logs</CardTitle>
-                  <div className="flex gap-1 text-xxs font-bold">
-                    {(['ALL', 'SYSTEM', 'AUTH', 'DB'] as const).map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setLogFilter(cat)}
-                        className={`px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
-                          logFilter === cat
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
+          <KPICard
+            label="Platform Orders"
+            value={kpis.total_orders}
+            icon={<ShoppingBag size={20} />}
+            description={`${kpis.active_orders} active, ${kpis.completed_orders} completed`}
+            iconBgClass="bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 border-teal-200 dark:border-teal-800/60"
+          />
+
+          <KPICard
+            label="Total Invoiced Volume"
+            value={formatCurrency(kpis.total_platform_invoiced)}
+            icon={<IndianRupee size={20} />}
+            description="Platform gross trade volume"
+            iconBgClass="bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800/60"
+          />
+
+          <KPICard
+            label="Total Settled Volume"
+            value={formatCurrency(kpis.total_platform_collected)}
+            icon={<CheckCircle2 size={20} />}
+            description="Completed payment receipts"
+            iconBgClass="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60"
+          />
+
+          <KPICard
+            label="Platform Receivables Due"
+            value={formatCurrency(kpis.platform_outstanding)}
+            icon={<Clock size={20} />}
+            description="Outstanding balance across network"
+            iconBgClass="bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/60"
+          />
+
+          <KPICard
+            label="Core System Status"
+            value="100% Online"
+            icon={<Activity size={20} className="animate-pulse" />}
+            description="FastAPI & PostgreSQL operational"
+            iconBgClass="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60"
+          />
+        </div>
+
+        {/* Financial Flow & Status Breakdown Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <TrendChart
+            title="Platform Financial Trade Volume"
+            description="Daily gross invoiced volume vs completed settlements across all tenants"
+            data={platform_financial_trend}
+            primaryKey="invoiced_amount"
+            secondaryKey="collected_amount"
+            primaryLabel="Invoiced Volume (₹)"
+            secondaryLabel="Settled Volume (₹)"
+            className="lg:col-span-2"
+          />
+
+          <StatusDistributionBar
+            distribution={order_status_distribution}
+            title="Platform Order Lifecycle"
+          />
+        </div>
+
+        {/* Operational Health Diagnostics & Top Active Suppliers */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Operational Health Card */}
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-5">
+              <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Server size={18} className="text-primary-500" />
+                Pipeline Health & Platform Alerts
+              </CardTitle>
+              <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/50">
+                Healthy
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5 text-center">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                <p className="text-[10px] uppercase font-bold text-slate-400 font-heading">Pending Review</p>
+                <p className="text-lg font-mono font-extrabold text-slate-900 dark:text-white mt-1">
+                  {operational_health.pending_orders}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30">
+                <p className="text-[10px] uppercase font-bold text-blue-500 font-heading">Processing</p>
+                <p className="text-lg font-mono font-extrabold text-blue-600 dark:text-blue-400 mt-1">
+                  {operational_health.processing_orders}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30">
+                <p className="text-[10px] uppercase font-bold text-indigo-500 font-heading">Packed</p>
+                <p className="text-lg font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-1">
+                  {operational_health.packed_orders}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-cyan-50/50 dark:bg-cyan-950/20 border border-cyan-100 dark:border-cyan-900/30">
+                <p className="text-[10px] uppercase font-bold text-cyan-500 font-heading">Shipped</p>
+                <p className="text-lg font-mono font-extrabold text-cyan-600 dark:text-cyan-400 mt-1">
+                  {operational_health.shipped_orders}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+              <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <AlertTriangle size={14} className="text-amber-500" /> Unpaid / Partially Paid Invoices:
+                </span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">
+                  {operational_health.unpaid_invoices_count} invoices
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <AlertTriangle size={14} className="text-amber-500" /> Platform Low Stock Alerts:
+                </span>
+                <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                  {operational_health.low_stock_alerts_count} SKUs
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <AlertOctagon size={14} className="text-rose-500" /> Platform Out of Stock Alerts:
+                </span>
+                <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                  {operational_health.out_of_stock_alerts_count} SKUs
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Top Suppliers on Platform */}
+          <TopRankingCard
+            title="Top Active Platform Suppliers"
+            type="suppliers"
+            items={top_active_suppliers}
+          />
+        </div>
+
+        {/* User Roles & Company Breakdown Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* User Roles Card */}
+          <Card className="p-6">
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <Users size={17} className="text-primary-500" />
+              Users by System Role
+            </CardTitle>
+            <div className="space-y-3">
+              {Object.entries(user_role_breakdown).map(([roleName, count]) => (
+                <div
+                  key={roleName}
+                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800"
+                >
+                  <span className="font-semibold text-xs text-slate-700 dark:text-slate-300 uppercase font-heading">
+                    {roleName}
+                  </span>
+                  <span className="font-mono font-bold text-xs bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                    {count} {count === 1 ? 'user' : 'users'}
+                  </span>
                 </div>
-              </CardHeader>
-              <CardContent className="text-xxs text-slate-400 font-mono space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800 min-h-[160px]">
-                {filteredLogs.map((log, idx) => (
-                  <div key={idx} className={log.color}>
-                    {log.text}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Company Business Types Card */}
+          <Card className="p-6">
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <Building2 size={17} className="text-primary-500" />
+              Companies by Business Type
+            </CardTitle>
+            <div className="space-y-3">
+              {Object.entries(company_type_breakdown).map(([typeName, count]) => (
+                <div
+                  key={typeName}
+                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800"
+                >
+                  <span className="font-semibold text-xs text-slate-700 dark:text-slate-300">
+                    {typeName}
+                  </span>
+                  <span className="font-mono font-bold text-xs bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                    {count} {count === 1 ? 'entity' : 'entities'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
       </div>
     </PageWrapper>
   );
 };
-

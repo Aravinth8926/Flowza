@@ -4,7 +4,7 @@ import os
 import uuid
 from datetime import datetime, date, timedelta, timezone
 from decimal import Decimal
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 # Ensure parent path is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -418,8 +418,6 @@ async def seed_data():
                             unit=it["unit"],
                             estimated_price=it["price"],
                             unit_price=it["price"],
-                            line_subtotal=it["price"] * it["qty"],
-                            line_total=it["price"] * it["qty"],
                             created_at=c_time,
                         )
                         db.add(item_rec)
@@ -428,9 +426,9 @@ async def seed_data():
                     db.add(OrderStatusHistory(
                         order_request_id=ord_req.id,
                         changed_by_user_id=b["vendor"].id,
-                        old_status=None,
-                        new_status=b["status"],
-                        notes=f"Initial seeded status: {b['status']}",
+                        from_status=None,
+                        to_status=b["status"],
+                        note=f"Initial seeded status: {b['status']}",
                         created_at=c_time,
                     ))
 
@@ -481,8 +479,8 @@ async def seed_data():
                                 invoice_id=inv_rec.id,
                                 amount=inv_data["paid"],
                                 payment_date=inv_date + timedelta(days=2),
-                                payment_method=inv_data.get("payment_method", "bank_transfer"),
-                                reference_number=f"PAY-UTR-{uuid.uuid4().hex[:8].upper()}",
+                                method=inv_data.get("payment_method", "bank_transfer"),
+                                reference=f"PAY-UTR-{uuid.uuid4().hex[:8].upper()}",
                                 notes="Seeded authentic business payment settlement.",
                                 recorded_by_user_id=b["supplier"].id,
                                 created_at=c_time + timedelta(days=2),

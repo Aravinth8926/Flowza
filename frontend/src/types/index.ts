@@ -543,3 +543,167 @@ export interface NotificationPreferences {
   system_notifications_enabled: boolean;
 }
 
+// -------------------------------------------------------------
+// Phase 6: Dashboards, Analytics & BI Types
+// -------------------------------------------------------------
+
+export type DateRangePreset = '7d' | '30d' | '3m' | '6m' | '12m' | 'all' | 'custom';
+
+export interface TrendDataPoint {
+  date: string;
+  invoiced_amount: number | string;
+  collected_amount: number | string;
+  order_count: number;
+  procurement_value: number | string;
+}
+
+export interface StatusCountItem {
+  status: string;
+  count: number;
+  percentage: number;
+}
+
+export interface TopProductItem {
+  product_id?: string | null;
+  product_name: string;
+  sku?: string | null;
+  category?: string | null;
+  total_units_sold: number;
+  total_revenue: number | string;
+  order_count: number;
+}
+
+export interface TopSupplierItem {
+  supplier_company_id: string;
+  supplier_name: string;
+  business_type?: string | null;
+  total_spend: number | string;
+  total_orders: number;
+  completed_orders: number;
+}
+
+export interface AttentionItem {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  severity: 'info' | 'warning' | 'urgent';
+  link: string;
+  entity_id?: string | null;
+}
+
+export interface RecentOrderSummary {
+  id: string;
+  order_number: string;
+  counterpart_company_name: string;
+  item_preview: string;
+  total_amount: number | string;
+  status: string;
+  delivery_date?: string | null;
+  created_at: string;
+}
+
+export interface OutstandingInvoiceSummary {
+  id: string;
+  invoice_number: string;
+  counterpart_company_name: string;
+  total_amount: number | string;
+  paid_amount: number | string;
+  balance_due: number | string;
+  payment_status: string;
+  due_date?: string | null;
+  created_at: string;
+}
+
+export interface SupplierKPIs {
+  total_orders: number;
+  active_orders: number;
+  completed_orders: number;
+  total_invoiced: number | string;
+  total_collected: number | string;
+  outstanding_receivables: number | string;
+  low_stock_products_count: number;
+  out_of_stock_products_count: number;
+  orders_trend_pct?: number | null;
+  invoiced_trend_pct?: number | null;
+  collected_trend_pct?: number | null;
+}
+
+export interface SupplierInventoryOverview {
+  total_products: number;
+  in_stock_count: number;
+  low_stock_count: number;
+  out_of_stock_count: number;
+  total_quantity_on_hand: number;
+  total_quantity_reserved: number;
+  total_quantity_available: number;
+}
+
+export interface SupplierOverviewResponse {
+  kpis: SupplierKPIs;
+  order_status_distribution: StatusCountItem[];
+  revenue_trend: TrendDataPoint[];
+  top_products: TopProductItem[];
+  inventory_summary: SupplierInventoryOverview;
+  recent_orders: RecentOrderSummary[];
+  attention_items: AttentionItem[];
+}
+
+export interface VendorKPIs {
+  total_orders: number;
+  active_orders: number;
+  completed_orders: number;
+  total_procurement_value: number | string;
+  total_paid: number | string;
+  outstanding_payables: number | string;
+  active_suppliers_count: number;
+  pending_deliveries: number;
+  orders_trend_pct?: number | null;
+  procurement_trend_pct?: number | null;
+}
+
+export interface VendorOverviewResponse {
+  kpis: VendorKPIs;
+  order_status_distribution: StatusCountItem[];
+  procurement_trend: TrendDataPoint[];
+  top_suppliers: TopSupplierItem[];
+  outstanding_invoices: OutstandingInvoiceSummary[];
+  recent_orders: RecentOrderSummary[];
+  attention_items: AttentionItem[];
+}
+
+export interface AdminKPIs {
+  total_users: number;
+  total_companies: number;
+  vendor_companies_count: number;
+  supplier_companies_count: number;
+  total_products: number;
+  total_orders: number;
+  total_platform_invoiced: number | string;
+  total_platform_collected: number | string;
+  platform_outstanding: number | string;
+  active_orders: number;
+  completed_orders: number;
+}
+
+export interface AdminOperationalHealth {
+  pending_orders: number;
+  processing_orders: number;
+  packed_orders: number;
+  shipped_orders: number;
+  unpaid_invoices_count: number;
+  low_stock_alerts_count: number;
+  out_of_stock_alerts_count: number;
+}
+
+export interface AdminOverviewResponse {
+  kpis: AdminKPIs;
+  user_role_breakdown: Record<string, number>;
+  company_type_breakdown: Record<string, number>;
+  order_status_distribution: StatusCountItem[];
+  platform_financial_trend: TrendDataPoint[];
+  operational_health: AdminOperationalHealth;
+  top_active_suppliers: TopSupplierItem[];
+}
+
+

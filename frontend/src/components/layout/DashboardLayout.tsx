@@ -32,13 +32,16 @@ export const DashboardLayout: React.FC = () => {
       if (payload.type?.startsWith('ORDER_') || payload.event === 'ORDER_STATUS_CHANGED') {
         queryClient.invalidateQueries({ queryKey: ['orders'] });
         queryClient.invalidateQueries({ queryKey: ['order'] });
+        queryClient.invalidateQueries({ queryKey: ['analytics'] });
       }
       if (payload.type?.startsWith('INVOICE_') || payload.type?.startsWith('PAYMENT_')) {
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
         queryClient.invalidateQueries({ queryKey: ['invoice'] });
+        queryClient.invalidateQueries({ queryKey: ['analytics'] });
       }
       if (payload.type?.startsWith('INVENTORY_')) {
         queryClient.invalidateQueries({ queryKey: ['inventory'] });
+        queryClient.invalidateQueries({ queryKey: ['analytics'] });
       }
 
       // Display dynamic toast

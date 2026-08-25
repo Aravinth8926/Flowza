@@ -22,7 +22,19 @@ if config.config_file_name is not None:
 
 # Import models metadata
 from app.database.base import Base
-from app.models import role, user, company, address, product, inventory, cart, order_request
+from app.models import (
+    role,
+    user,
+    company,
+    address,
+    product,
+    inventory,
+    cart,
+    order_request,
+    order_status_history,
+    invoice,
+    notification,
+)
 
 target_metadata = Base.metadata
 

@@ -8,11 +8,8 @@ from sqlalchemy import (
     select,
     func,
     case,
-    coalesce,
     and_,
     or_,
-    cast,
-    Date,
     desc,
     asc,
     distinct,
@@ -62,6 +59,14 @@ def _quantize(val: Any) -> Decimal:
         return Decimal("0.00")
 
 
+def _format_date_str(d: Any) -> Optional[str]:
+    if not d:
+        return None
+    if hasattr(d, "strftime"):
+        return d.strftime("%Y-%m-%d")
+    return str(d)[:10]
+
+
 class AnalyticsRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -83,9 +88,9 @@ class AnalyticsRepository:
             OrderRequest.is_deleted == False,
         ]
         if start_date:
-            order_filters.append(cast(OrderRequest.created_at, Date) >= start_date)
+            order_filters.append(func.date(OrderRequest.created_at) >= start_date.strftime("%Y-%m-%d"))
         if end_date:
-            order_filters.append(cast(OrderRequest.created_at, Date) <= end_date)
+            order_filters.append(func.date(OrderRequest.created_at) <= end_date.strftime("%Y-%m-%d"))
 
         order_stmt = select(
             func.count(OrderRequest.id).label("total_orders"),
@@ -111,13 +116,13 @@ class AnalyticsRepository:
             Invoice.is_deleted == False,
         ]
         if start_date:
-            inv_filters.append(Invoice.invoice_date >= start_date)
+            inv_filters.append(func.date(Invoice.invoice_date) >= start_date.strftime("%Y-%m-%d"))
         if end_date:
-            inv_filters.append(Invoice.invoice_date <= end_date)
+            inv_filters.append(func.date(Invoice.invoice_date) <= end_date.strftime("%Y-%m-%d"))
 
         inv_stmt = select(
-            coalesce(func.sum(Invoice.total_amount), 0).label("total_invoiced"),
-            coalesce(func.sum(Invoice.paid_amount), 0).label("total_collected"),
+            func.coalesce(func.sum(Invoice.total_amount), 0).label("total_invoiced"),
+            func.coalesce(func.sum(Invoice.paid_amount), 0).label("total_collected"),
         ).where(and_(*inv_filters))
 
         inv_res = (await self.db.execute(inv_stmt)).mappings().one()
@@ -180,9 +185,9 @@ class AnalyticsRepository:
             OrderRequest.is_deleted == False,
         ]
         if start_date:
-            filters.append(cast(OrderRequest.created_at, Date) >= start_date)
+            filters.append(func.date(OrderRequest.created_at) >= start_date.strftime("%Y-%m-%d"))
         if end_date:
-            filters.append(cast(OrderRequest.created_at, Date) <= end_date)
+            filters.append(func.date(OrderRequest.created_at) <= end_date.strftime("%Y-%m-%d"))
 
         stmt = select(
             func.lower(OrderRequest.status).label("status"),
@@ -211,22 +216,25 @@ class AnalyticsRepository:
         end_date: date,
     ) -> List[Dict[str, Any]]:
         """Daily/periodic trend of invoiced and collected amounts."""
+        s_str = start_date.strftime("%Y-%m-%d")
+        e_str = end_date.strftime("%Y-%m-%d")
+
         # Query daily invoices
         inv_stmt = select(
-            cast(Invoice.invoice_date, Date).label("inv_date"),
-            coalesce(func.sum(Invoice.total_amount), 0).label("invoiced"),
-            coalesce(func.sum(Invoice.paid_amount), 0).label("collected"),
+            func.date(Invoice.invoice_date).label("inv_date"),
+            func.coalesce(func.sum(Invoice.total_amount), 0).label("invoiced"),
+            func.coalesce(func.sum(Invoice.paid_amount), 0).label("collected"),
             func.count(Invoice.id).label("invoice_count"),
         ).where(
             Invoice.supplier_company_id == company_id,
             Invoice.is_deleted == False,
-            Invoice.invoice_date >= start_date,
-            Invoice.invoice_date <= end_date,
-        ).group_by(cast(Invoice.invoice_date, Date)).order_by(cast(Invoice.invoice_date, Date).asc())
+            func.date(Invoice.invoice_date) >= s_str,
+            func.date(Invoice.invoice_date) <= e_str,
+        ).group_by(func.date(Invoice.invoice_date)).order_by(func.date(Invoice.invoice_date).asc())
 
         inv_rows = (await self.db.execute(inv_stmt)).all()
         inv_map = {
-            row.inv_date.strftime("%Y-%m-%d"): {
+            _format_date_str(row.inv_date): {
                 "invoiced": _quantize(row.invoiced),
                 "collected": _quantize(row.collected),
                 "count": row.invoice_count,
@@ -236,18 +244,18 @@ class AnalyticsRepository:
 
         # Query daily order counts
         ord_stmt = select(
-            cast(OrderRequest.created_at, Date).label("ord_date"),
+            func.date(OrderRequest.created_at).label("ord_date"),
             func.count(OrderRequest.id).label("order_count"),
         ).where(
             OrderRequest.supplier_company_id == company_id,
             OrderRequest.is_deleted == False,
-            cast(OrderRequest.created_at, Date) >= start_date,
-            cast(OrderRequest.created_at, Date) <= end_date,
-        ).group_by(cast(OrderRequest.created_at, Date))
+            func.date(OrderRequest.created_at) >= s_str,
+            func.date(OrderRequest.created_at) <= e_str,
+        ).group_by(func.date(OrderRequest.created_at))
 
         ord_rows = (await self.db.execute(ord_stmt)).all()
         ord_map = {
-            row.ord_date.strftime("%Y-%m-%d"): row.order_count
+            _format_date_str(row.ord_date): row.order_count
             for row in ord_rows if row.ord_date
         }
 
@@ -284,9 +292,9 @@ class AnalyticsRepository:
             OrderRequestItem.is_deleted == False,
         ]
         if start_date:
-            filters.append(cast(OrderRequest.created_at, Date) >= start_date)
+            filters.append(func.date(OrderRequest.created_at) >= start_date.strftime("%Y-%m-%d"))
         if end_date:
-            filters.append(cast(OrderRequest.created_at, Date) <= end_date)
+            filters.append(func.date(OrderRequest.created_at) <= end_date.strftime("%Y-%m-%d"))
 
         stmt = select(
             OrderRequestItem.product_id,
@@ -297,7 +305,7 @@ class AnalyticsRepository:
             func.coalesce(OrderRequestItem.sku_snapshot, Product.sku).label("p_sku"),
             Product.category.label("p_category"),
             func.sum(OrderRequestItem.quantity).label("units_sold"),
-            coalesce(func.sum(OrderRequestItem.unit_price * OrderRequestItem.quantity), 0).label("revenue"),
+            func.coalesce(func.sum(OrderRequestItem.unit_price * OrderRequestItem.quantity), 0).label("revenue"),
             func.count(distinct(OrderRequest.id)).label("order_count"),
         ).select_from(OrderRequestItem).join(
             OrderRequest, OrderRequestItem.order_request_id == OrderRequest.id
@@ -505,9 +513,9 @@ class AnalyticsRepository:
             OrderRequest.is_deleted == False,
         ]
         if start_date:
-            order_filters.append(cast(OrderRequest.created_at, Date) >= start_date)
+            order_filters.append(func.date(OrderRequest.created_at) >= start_date.strftime("%Y-%m-%d"))
         if end_date:
-            order_filters.append(cast(OrderRequest.created_at, Date) <= end_date)
+            order_filters.append(func.date(OrderRequest.created_at) <= end_date.strftime("%Y-%m-%d"))
 
         order_stmt = select(
             func.count(OrderRequest.id).label("total_orders"),
@@ -530,7 +538,7 @@ class AnalyticsRepository:
                 )
             ).label("pending_deliveries"),
             func.count(distinct(OrderRequest.supplier_company_id)).label("active_suppliers"),
-            coalesce(
+            func.coalesce(
                 func.sum(
                     case(
                         (
@@ -552,13 +560,13 @@ class AnalyticsRepository:
             Invoice.is_deleted == False,
         ]
         if start_date:
-            inv_filters.append(Invoice.invoice_date >= start_date)
+            inv_filters.append(func.date(Invoice.invoice_date) >= start_date.strftime("%Y-%m-%d"))
         if end_date:
-            inv_filters.append(Invoice.invoice_date <= end_date)
+            inv_filters.append(func.date(Invoice.invoice_date) <= end_date.strftime("%Y-%m-%d"))
 
         inv_stmt = select(
-            coalesce(func.sum(Invoice.total_amount), 0).label("total_invoiced"),
-            coalesce(func.sum(Invoice.paid_amount), 0).label("total_paid"),
+            func.coalesce(func.sum(Invoice.total_amount), 0).label("total_invoiced"),
+            func.coalesce(func.sum(Invoice.paid_amount), 0).label("total_paid"),
         ).where(and_(*inv_filters))
 
         inv_res = (await self.db.execute(inv_stmt)).mappings().one()
@@ -590,9 +598,9 @@ class AnalyticsRepository:
             OrderRequest.is_deleted == False,
         ]
         if start_date:
-            filters.append(cast(OrderRequest.created_at, Date) >= start_date)
+            filters.append(func.date(OrderRequest.created_at) >= start_date.strftime("%Y-%m-%d"))
         if end_date:
-            filters.append(cast(OrderRequest.created_at, Date) <= end_date)
+            filters.append(func.date(OrderRequest.created_at) <= end_date.strftime("%Y-%m-%d"))
 
         stmt = select(
             func.lower(OrderRequest.status).label("status"),
@@ -621,9 +629,12 @@ class AnalyticsRepository:
         end_date: date,
     ) -> List[Dict[str, Any]]:
         """Daily/periodic trend of vendor procurement spend and completed orders."""
+        s_str = start_date.strftime("%Y-%m-%d")
+        e_str = end_date.strftime("%Y-%m-%d")
+
         ord_stmt = select(
-            cast(OrderRequest.created_at, Date).label("ord_date"),
-            coalesce(
+            func.date(OrderRequest.created_at).label("ord_date"),
+            func.coalesce(
                 func.sum(
                     case(
                         (
@@ -639,13 +650,13 @@ class AnalyticsRepository:
         ).where(
             OrderRequest.vendor_company_id == company_id,
             OrderRequest.is_deleted == False,
-            cast(OrderRequest.created_at, Date) >= start_date,
-            cast(OrderRequest.created_at, Date) <= end_date,
-        ).group_by(cast(OrderRequest.created_at, Date)).order_by(cast(OrderRequest.created_at, Date).asc())
+            func.date(OrderRequest.created_at) >= s_str,
+            func.date(OrderRequest.created_at) <= e_str,
+        ).group_by(func.date(OrderRequest.created_at)).order_by(func.date(OrderRequest.created_at).asc())
 
         ord_rows = (await self.db.execute(ord_stmt)).all()
         ord_map = {
-            row.ord_date.strftime("%Y-%m-%d"): {
+            _format_date_str(row.ord_date): {
                 "procurement": _quantize(row.procurement),
                 "order_count": row.order_count,
             }
@@ -654,18 +665,18 @@ class AnalyticsRepository:
 
         # Daily payment trend
         inv_stmt = select(
-            cast(Invoice.invoice_date, Date).label("inv_date"),
-            coalesce(func.sum(Invoice.paid_amount), 0).label("paid"),
+            func.date(Invoice.invoice_date).label("inv_date"),
+            func.coalesce(func.sum(Invoice.paid_amount), 0).label("paid"),
         ).where(
             Invoice.vendor_company_id == company_id,
             Invoice.is_deleted == False,
-            Invoice.invoice_date >= start_date,
-            Invoice.invoice_date <= end_date,
-        ).group_by(cast(Invoice.invoice_date, Date))
+            func.date(Invoice.invoice_date) >= s_str,
+            func.date(Invoice.invoice_date) <= e_str,
+        ).group_by(func.date(Invoice.invoice_date))
 
         inv_rows = (await self.db.execute(inv_stmt)).all()
         inv_map = {
-            row.inv_date.strftime("%Y-%m-%d"): _quantize(row.paid)
+            _format_date_str(row.inv_date): _quantize(row.paid)
             for row in inv_rows if row.inv_date
         }
 
@@ -700,15 +711,15 @@ class AnalyticsRepository:
             func.lower(OrderRequest.status).notin_(EXCLUDED_FROM_SALES),
         ]
         if start_date:
-            filters.append(cast(OrderRequest.created_at, Date) >= start_date)
+            filters.append(func.date(OrderRequest.created_at) >= start_date.strftime("%Y-%m-%d"))
         if end_date:
-            filters.append(cast(OrderRequest.created_at, Date) <= end_date)
+            filters.append(func.date(OrderRequest.created_at) <= end_date.strftime("%Y-%m-%d"))
 
         stmt = select(
             OrderRequest.supplier_company_id,
             Company.company_name.label("supplier_name"),
             Company.business_type,
-            coalesce(func.sum(OrderRequest.estimated_price), 0).label("spend"),
+            func.coalesce(func.sum(OrderRequest.estimated_price), 0).label("spend"),
             func.count(OrderRequest.id).label("total_orders"),
             func.count(
                 case(
@@ -891,9 +902,9 @@ class AnalyticsRepository:
         # 4. Orders aggregations
         ord_filters = [OrderRequest.is_deleted == False]
         if start_date:
-            ord_filters.append(cast(OrderRequest.created_at, Date) >= start_date)
+            ord_filters.append(func.date(OrderRequest.created_at) >= start_date.strftime("%Y-%m-%d"))
         if end_date:
-            ord_filters.append(cast(OrderRequest.created_at, Date) <= end_date)
+            ord_filters.append(func.date(OrderRequest.created_at) <= end_date.strftime("%Y-%m-%d"))
 
         ord_stmt = select(
             func.count(OrderRequest.id).label("total_orders"),
@@ -916,13 +927,13 @@ class AnalyticsRepository:
         # 5. Financial volume aggregations
         inv_filters = [Invoice.is_deleted == False]
         if start_date:
-            inv_filters.append(Invoice.invoice_date >= start_date)
+            inv_filters.append(func.date(Invoice.invoice_date) >= start_date.strftime("%Y-%m-%d"))
         if end_date:
-            inv_filters.append(Invoice.invoice_date <= end_date)
+            inv_filters.append(func.date(Invoice.invoice_date) <= end_date.strftime("%Y-%m-%d"))
 
         inv_stmt = select(
-            coalesce(func.sum(Invoice.total_amount), 0).label("invoiced_vol"),
-            coalesce(func.sum(Invoice.paid_amount), 0).label("settled_vol"),
+            func.coalesce(func.sum(Invoice.total_amount), 0).label("invoiced_vol"),
+            func.coalesce(func.sum(Invoice.paid_amount), 0).label("settled_vol"),
         ).where(and_(*inv_filters))
 
         inv_res = (await self.db.execute(inv_stmt)).mappings().one()
@@ -967,9 +978,9 @@ class AnalyticsRepository:
         """Platform-wide order lifecycle breakdown."""
         filters = [OrderRequest.is_deleted == False]
         if start_date:
-            filters.append(cast(OrderRequest.created_at, Date) >= start_date)
+            filters.append(func.date(OrderRequest.created_at) >= start_date.strftime("%Y-%m-%d"))
         if end_date:
-            filters.append(cast(OrderRequest.created_at, Date) <= end_date)
+            filters.append(func.date(OrderRequest.created_at) <= end_date.strftime("%Y-%m-%d"))
 
         stmt = select(
             func.lower(OrderRequest.status).label("status"),
@@ -997,19 +1008,22 @@ class AnalyticsRepository:
         end_date: date,
     ) -> List[Dict[str, Any]]:
         """Platform financial flow over time."""
+        s_str = start_date.strftime("%Y-%m-%d")
+        e_str = end_date.strftime("%Y-%m-%d")
+
         inv_stmt = select(
-            cast(Invoice.invoice_date, Date).label("inv_date"),
-            coalesce(func.sum(Invoice.total_amount), 0).label("invoiced"),
-            coalesce(func.sum(Invoice.paid_amount), 0).label("collected"),
+            func.date(Invoice.invoice_date).label("inv_date"),
+            func.coalesce(func.sum(Invoice.total_amount), 0).label("invoiced"),
+            func.coalesce(func.sum(Invoice.paid_amount), 0).label("collected"),
         ).where(
             Invoice.is_deleted == False,
-            Invoice.invoice_date >= start_date,
-            Invoice.invoice_date <= end_date,
-        ).group_by(cast(Invoice.invoice_date, Date)).order_by(cast(Invoice.invoice_date, Date).asc())
+            func.date(Invoice.invoice_date) >= s_str,
+            func.date(Invoice.invoice_date) <= e_str,
+        ).group_by(func.date(Invoice.invoice_date)).order_by(func.date(Invoice.invoice_date).asc())
 
         inv_rows = (await self.db.execute(inv_stmt)).all()
         inv_map = {
-            row.inv_date.strftime("%Y-%m-%d"): {
+            _format_date_str(row.inv_date): {
                 "invoiced": _quantize(row.invoiced),
                 "collected": _quantize(row.collected),
             }
@@ -1018,17 +1032,17 @@ class AnalyticsRepository:
 
         # Daily orders
         ord_stmt = select(
-            cast(OrderRequest.created_at, Date).label("ord_date"),
+            func.date(OrderRequest.created_at).label("ord_date"),
             func.count(OrderRequest.id).label("order_count"),
         ).where(
             OrderRequest.is_deleted == False,
-            cast(OrderRequest.created_at, Date) >= start_date,
-            cast(OrderRequest.created_at, Date) <= end_date,
-        ).group_by(cast(OrderRequest.created_at, Date))
+            func.date(OrderRequest.created_at) >= s_str,
+            func.date(OrderRequest.created_at) <= e_str,
+        ).group_by(func.date(OrderRequest.created_at))
 
         ord_rows = (await self.db.execute(ord_stmt)).all()
         ord_map = {
-            row.ord_date.strftime("%Y-%m-%d"): row.order_count
+            _format_date_str(row.ord_date): row.order_count
             for row in ord_rows if row.ord_date
         }
 
@@ -1114,7 +1128,7 @@ class AnalyticsRepository:
             OrderRequest.supplier_company_id,
             Company.company_name.label("supplier_name"),
             Company.business_type,
-            coalesce(func.sum(OrderRequest.estimated_price), 0).label("spend"),
+            func.coalesce(func.sum(OrderRequest.estimated_price), 0).label("spend"),
             func.count(OrderRequest.id).label("total_orders"),
             func.count(
                 case(
