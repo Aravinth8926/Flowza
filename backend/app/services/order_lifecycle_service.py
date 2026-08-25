@@ -224,7 +224,33 @@ class OrderLifecycleService:
         if delivery_date:
             order.delivery_date = delivery_date
 
-        # 7. Commit database transaction atomically
+        # Resolve company names for human-readable notifications
+        supplier_name = "Supplier"
+        vendor_name = "Vendor"
+        from app.models.company import Company
+        supp_res = await self.db.execute(select(Company.company_name).where(Company.id == order.supplier_company_id))
+        s_row = supp_res.scalar_one_or_none()
+        if s_row:
+            supplier_name = s_row
+
+        vend_res = await self.db.execute(select(Company.company_name).where(Company.id == order.vendor_company_id))
+        v_row = vend_res.scalar_one_or_none()
+        if v_row:
+            vendor_name = v_row
+
+        from app.services.notification_service import NotificationService
+        notif_service = NotificationService(self.db)
+        await notif_service.notify_order_status_change(
+            order=order,
+            from_status=current_status,
+            to_status=target_status,
+            actor=current_user,
+            supplier_company_name=supplier_name,
+            vendor_company_name=vendor_name,
+            rejection_reason=note if target_status in ("rejected", "cancelled") else None,
+        )
+
+        # 7. Commit database transaction atomically (including notifications)
         await self.db.commit()
         await self.db.refresh(order)
 

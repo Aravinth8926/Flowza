@@ -210,10 +210,39 @@ class CheckoutService:
         # Clear cart items AFTER successful reservation and order creation
         await self.cart_repo.clear_cart_items(cart_id)
 
-        # COMMIT everything atomically
+        # Create persistent notifications within the transaction
+        from app.services.notification_service import NotificationService
+        notif_service = NotificationService(self.db)
+        
+        vendor_company_name = vendor.full_name
+        if vendor.company_id:
+            from app.models.company import Company
+            vc_res = await self.db.execute(
+                select(Company).where(Company.id == vendor.company_id)
+            )
+            vendor_company = vc_res.scalars().first()
+            if vendor_company:
+                vendor_company_name = vendor_company.company_name
+
+        await notif_service.notify_order_created(new_order, vendor_company_name)
+
+        # Check for inventory alerts for reserved items
+        for v in validated:
+            inv = v["inventory"]
+            product = v["product"]
+            available = inv.quantity_on_hand - inv.quantity_reserved
+            if available <= inv.reorder_level or available <= 0:
+                await notif_service.notify_inventory_stock_alert(
+                    product=product,
+                    inventory=inv,
+                    available=available,
+                    is_out_of_stock=(available <= 0),
+                )
+
+        # COMMIT everything atomically (including notifications)
         await self.db.commit()
 
-        # 5. Send WebSocket notification ONLY after successful commit
+        # 5. Send legacy WebSocket notification ONLY after successful commit
         await self._notify_supplier(cart, new_order, vendor, total_price, len(validated))
 
         order_number = f"ORD-2026-{str(new_order.id)[:6].upper()}"

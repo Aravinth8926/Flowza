@@ -48,6 +48,15 @@ class ConnectionManager:
             if role == "supplier":
                 await self.send_to_user(user_id, message)
 
+    async def send_notification_event(self, user_id: str, notification_data: dict):
+        """Send standardized real-time notification to a user's active connections."""
+        payload = {
+            "type": "notification",
+            "event": "notification",
+            "data": notification_data,
+        }
+        await self.send_to_user(user_id, payload)
+
     async def broadcast_all(self, message: dict):
         """Broadcast to all connected clients."""
         for user_id in list(self.active_connections.keys()):

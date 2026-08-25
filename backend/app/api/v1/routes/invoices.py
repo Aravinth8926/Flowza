@@ -5,14 +5,13 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.session import get_db
-from app.api.deps import get_current_user
+from app.api.v1.deps import get_current_user
 from app.models.user import User
 from app.services.invoice_service import InvoiceService, _build_invoice_response, _build_invoice_detail_response
 from app.services.pdf_service import InvoicePDFService
 from app.schemas.invoice import (
     InvoiceGenerateRequest,
     PaymentRecordCreate,
-    PaymentStatusUpdate,
     InvoiceResponse,
     InvoiceDetailResponse,
     InvoiceListResponse,
@@ -150,21 +149,7 @@ async def download_invoice_pdf(
     )
 
 
-@router.patch("/{invoice_id}/payment-status", response_model=dict)
-async def update_payment_status(
-    invoice_id: uuid.UUID,
-    req: PaymentStatusUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Update invoice payment status directly (Supplier / Admin only)."""
-    service = InvoiceService(db)
-    invoice = await service.update_payment_status(invoice_id, current_user, req)
-    return {
-        "success": True,
-        "message": f"Payment status updated to {invoice.payment_status}",
-        "data": _build_invoice_detail_response(invoice),
-    }
+
 
 
 @router.post("/{invoice_id}/payments", response_model=dict, status_code=status.HTTP_201_CREATED)

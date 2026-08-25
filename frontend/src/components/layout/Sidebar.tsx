@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Activity,
   FileText,
+  Bell,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -108,6 +109,11 @@ export const Sidebar: React.FC = () => {
         },
       ]
       : []),
+    {
+      label: 'Notifications',
+      path: '/notifications',
+      icon: <Bell size={18} />,
+    },
     {
       label: 'Profile',
       path: '/profile',

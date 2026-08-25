@@ -1,7 +1,8 @@
 import asyncio
 import sys
 import os
-from datetime import datetime, date, timedelta
+import uuid
+from datetime import datetime, date, timedelta, timezone
 from decimal import Decimal
 from sqlalchemy import select
 
@@ -10,7 +11,24 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 from app.database.session import AsyncSessionLocal, engine
 from app.database.base import Base
-from app.models import Role, User, Company, Address, Product, Inventory, Cart, CartItem, OrderRequest, OrderRequestItem
+from app.models import (
+    Role,
+    User,
+    Company,
+    Address,
+    Product,
+    Inventory,
+    Cart,
+    CartItem,
+    OrderRequest,
+    OrderRequestItem,
+    OrderStatusHistory,
+    Invoice,
+    InvoiceItem,
+    PaymentRecord,
+    Notification,
+    NotificationPreference,
+)
 from app.core.security import get_password_hash
 
 
@@ -32,34 +50,37 @@ async def seed_data():
                 await db.flush()
             roles_dict[rname] = role
 
-        # ── Admin ──────────────────────────────────────────────────────────────
+        # ── 1. Admin ───────────────────────────────────────────────────────────
         admin_email = "admin@flowza.com"
         result = await db.execute(select(User).where(User.email == admin_email))
         admin = result.scalars().first()
         if not admin:
             print("[SEED] Creating demo admin user...")
-            company = Company(
+            admin_comp = Company(
                 company_name="Flowza Platform Inc.",
                 business_type="Platform Admin",
                 description="Core administration company for Flowza B2B services.",
             )
-            db.add(company)
+            db.add(admin_comp)
             await db.flush()
+
             db.add(Address(
-                company_id=company.id, country="India", state="Karnataka",
+                company_id=admin_comp.id, country="India", state="Karnataka",
                 city="Bengaluru", address_line="Flowza HQ, Block 4, Koramangala",
                 address_type="billing",
             ))
             await db.flush()
-            db.add(User(
+
+            admin = User(
                 full_name="Flowza Admin", email=admin_email,
                 hashed_password=get_password_hash("AdminPassword123!"),
                 phone="9999999999", role_id=roles_dict["admin"].id,
-                company_id=company.id, is_active=True,
-            ))
+                company_id=admin_comp.id, is_active=True,
+            )
+            db.add(admin)
             await db.flush()
 
-        # ── Suppliers ──────────────────────────────────────────────────────────
+        # ── 2. Suppliers ───────────────────────────────────────────────────────
         suppliers_data = [
             {
                 "full_name": "ABC Distributors",
@@ -130,6 +151,7 @@ async def seed_data():
         ]
 
         supplier_users = {}
+        supplier_prods_map = {}
         for sdata in suppliers_data:
             res = await db.execute(select(User).where(User.email == sdata["email"]))
             s_user = res.scalars().first()
@@ -160,8 +182,8 @@ async def seed_data():
                 db.add(s_user)
                 await db.flush()
 
-                # Seed Products + Inventory for this supplier
-                print(f"[SEED]   Seeding {len(sdata['products'])} products for {sdata['company_name']}...")
+                # Products
+                s_prods = []
                 for pd in sdata["products"]:
                     prod = Product(
                         company_id=s_comp.id,
@@ -182,138 +204,292 @@ async def seed_data():
                     )
                     db.add(inv)
                     await db.flush()
+                    s_prods.append(prod)
+                supplier_prods_map[sdata["email"]] = s_prods
+            else:
+                # Load existing products
+                p_res = await db.execute(select(Product).where(Product.company_id == s_user.company_id))
+                supplier_prods_map[sdata["email"]] = p_res.scalars().all()
 
             supplier_users[sdata["email"]] = s_user
 
-        # ── Vendor ─────────────────────────────────────────────────────────────
-        vendor_email = "vendor@supermarket.com"
-        res = await db.execute(select(User).where(User.email == vendor_email))
-        vendor_user = res.scalars().first()
-        if not vendor_user:
-            print("[SEED] Creating demo vendor: My Supermarket (vendor@supermarket.com)...")
-            v_comp = Company(
-                company_name="My Supermarket",
-                business_type="Retail Supermarket Chain",
-                description="Leading fresh grocery & FMCG retail supermarket chain in Tamil Nadu.",
-                gst_number="33MYSUP9988A1Z9",
-            )
-            db.add(v_comp)
-            await db.flush()
+        # ── 3. Vendors ─────────────────────────────────────────────────────────
+        vendors_data = [
+            {
+                "full_name": "My Supermarket Retailers",
+                "email": "vendor@supermarket.com",
+                "phone": "+91 9443322110",
+                "company_name": "My Supermarket",
+                "business_type": "Retail Supermarket Chain",
+                "description": "Leading fresh grocery & FMCG retail supermarket chain in Tamil Nadu.",
+                "gst_number": "33MYSUP9988A1Z9",
+                "city": "Coimbatore",
+                "state": "Tamil Nadu",
+                "address_line": "45, MG Road, Coimbatore, Tamil Nadu - 641001",
+            },
+            {
+                "full_name": "Metro Hypermarket Stores",
+                "email": "metro@hypermarket.com",
+                "phone": "+91 9443322111",
+                "company_name": "Metro Hypermarket",
+                "business_type": "Hypermarket",
+                "description": "Large format modern retail hypermarket chain.",
+                "gst_number": "33METHY7766B2Z8",
+                "city": "Chennai",
+                "state": "Tamil Nadu",
+                "address_line": "100, Anna Salai, Chennai, Tamil Nadu - 600002",
+            }
+        ]
 
-            db.add(Address(
-                company_id=v_comp.id, country="India", state="Tamil Nadu",
-                city="Coimbatore",
-                address_line="45, MG Road, Coimbatore, Tamil Nadu - 641001",
-                address_type="shipping",
-            ))
-            await db.flush()
-
-            vendor_user = User(
-                full_name="My Supermarket Retailers", email=vendor_email,
-                hashed_password=get_password_hash("Password123!"),
-                phone="+91 9443322110", role_id=roles_dict["vendor"].id,
-                company_id=v_comp.id, is_active=True,
-            )
-            db.add(vendor_user)
-            await db.flush()
-
-        # ── Legacy demo orders for ABC Distributors ────────────────────────────
-        abc_supplier = supplier_users.get("abc@distributors.com")
-        if abc_supplier and vendor_user:
-            orders_res = await db.execute(
-                select(OrderRequest).where(
-                    OrderRequest.supplier_company_id == abc_supplier.company_id
+        vendor_users = {}
+        for vdata in vendors_data:
+            res = await db.execute(select(User).where(User.email == vdata["email"]))
+            v_user = res.scalars().first()
+            if not v_user:
+                print(f"[SEED] Creating demo vendor: {vdata['company_name']} ({vdata['email']})...")
+                v_comp = Company(
+                    company_name=vdata["company_name"],
+                    business_type=vdata["business_type"],
+                    description=vdata["description"],
+                    gst_number=vdata["gst_number"],
                 )
-            )
-            existing_orders = orders_res.scalars().all()
-            if not existing_orders:
-                print("[SEED] Creating realistic demo purchase orders for ABC Distributors...")
+                db.add(v_comp)
+                await db.flush()
+
+                db.add(Address(
+                    company_id=v_comp.id, country="India", state=vdata["state"],
+                    city=vdata["city"], address_line=vdata["address_line"],
+                    address_type="shipping",
+                ))
+                await db.flush()
+
+                v_user = User(
+                    full_name=vdata["full_name"], email=vdata["email"],
+                    hashed_password=get_password_hash("Password123!"),
+                    phone=vdata["phone"], role_id=roles_dict["vendor"].id,
+                    company_id=v_comp.id, is_active=True,
+                )
+                db.add(v_user)
+                await db.flush()
+            vendor_users[vdata["email"]] = v_user
+
+        # ── 4. Seed Rich Multi-Date Order Lifecycle, Invoices & Payments ───────
+        v1 = vendor_users.get("vendor@supermarket.com")
+        s1 = supplier_users.get("abc@distributors.com")
+        s2 = supplier_users.get("xyz@manufacturers.com")
+        s3 = supplier_users.get("pqr@wholesalers.com")
+
+        if v1 and s1 and s2:
+            existing_orders_count = (await db.execute(select(func.count(OrderRequest.id)))).scalar() or 0
+            if existing_orders_count < 8:
+                print("[SEED] Creating rich historical orders, invoices, and payments for analytics...")
                 today = date.today()
+                now = datetime.now(timezone.utc)
 
-                ord1 = OrderRequest(
-                    vendor_company_id=vendor_user.company_id,
-                    supplier_company_id=abc_supplier.company_id,
-                    created_by_user_id=vendor_user.id,
-                    title="Weekly Vegetable Supply — August Week 2",
-                    description="Need fresh vegetables for our supermarket branch in Coimbatore. Prefer hybrid varieties for tomatoes.",
-                    quantity=105, unit="kg",
-                    estimated_price=Decimal("3800.00"),
-                    delivery_date=today + timedelta(days=4),
-                    delivery_address="45, MG Road, Coimbatore, Tamil Nadu - 641001",
-                    priority="medium", status="pending",
-                )
-                db.add(ord1)
-                await db.flush()
-                db.add_all([
-                    OrderRequestItem(order_request_id=ord1.id, product_name="Tomatoes", quantity=50, unit="kg", estimated_price=Decimal("40.00")),
-                    OrderRequestItem(order_request_id=ord1.id, product_name="Onions", quantity=30, unit="kg", estimated_price=Decimal("35.00")),
-                    OrderRequestItem(order_request_id=ord1.id, product_name="Potatoes", quantity=25, unit="kg", estimated_price=Decimal("30.00")),
-                ])
+                # Order definitions across timeline
+                orders_blueprint = [
+                    # 1. Completed order 25 days ago with fully paid invoice
+                    {
+                        "vendor": v1, "supplier": s1,
+                        "title": "Monthly Staples Restock - Batch 1",
+                        "status": "completed", "priority": "high",
+                        "created_days_ago": 25, "price": Decimal("18500.00"),
+                        "items": [
+                            {"name": "Basmati Rice Premium", "qty": 80, "price": Decimal("150.50"), "unit": "kg"},
+                            {"name": "Toor Dal", "qty": 50, "price": Decimal("120.00"), "unit": "kg"},
+                        ],
+                        "invoice": {
+                            "number": "INV-2026-000001", "subtotal": Decimal("18040.00"), "tax": Decimal("902.00"),
+                            "total": Decimal("18942.00"), "paid": Decimal("18942.00"), "status": "paid",
+                            "days_ago": 24, "payment_method": "bank_transfer",
+                        }
+                    },
+                    # 2. Completed order 18 days ago with partially paid invoice
+                    {
+                        "vendor": v1, "supplier": s2,
+                        "title": "FMCG Beverages & Flours Restock",
+                        "status": "completed", "priority": "medium",
+                        "created_days_ago": 18, "price": Decimal("24500.00"),
+                        "items": [
+                            {"name": "Wheat Flour (Atta)", "qty": 200, "price": Decimal("48.00"), "unit": "kg"},
+                            {"name": "Instant Coffee Powder", "qty": 20, "price": Decimal("680.00"), "unit": "kg"},
+                        ],
+                        "invoice": {
+                            "number": "INV-2026-000002", "subtotal": Decimal("23200.00"), "tax": Decimal("1160.00"),
+                            "total": Decimal("24360.00"), "paid": Decimal("15000.00"), "status": "partially_paid",
+                            "days_ago": 17, "payment_method": "upi",
+                        }
+                    },
+                    # 3. Completed order 10 days ago with unpaid invoice
+                    {
+                        "vendor": v1, "supplier": s1,
+                        "title": "Bulk Sugar & Cooking Oil Supply",
+                        "status": "completed", "priority": "normal",
+                        "created_days_ago": 10, "price": Decimal("14200.00"),
+                        "items": [
+                            {"name": "Refined Sunflower Oil", "qty": 100, "price": Decimal("98.00"), "unit": "litre"},
+                            {"name": "White Sugar", "qty": 100, "price": Decimal("44.00"), "unit": "kg"},
+                        ],
+                        "invoice": {
+                            "number": "INV-2026-000003", "subtotal": Decimal("14200.00"), "tax": Decimal("710.00"),
+                            "total": Decimal("14910.00"), "paid": Decimal("0.00"), "status": "unpaid",
+                            "days_ago": 9,
+                        }
+                    },
+                    # 4. Shipped order 4 days ago
+                    {
+                        "vendor": v1, "supplier": s1,
+                        "title": "Weekly Grains Replenishment",
+                        "status": "shipped", "priority": "high",
+                        "created_days_ago": 4, "price": Decimal("9030.00"),
+                        "items": [
+                            {"name": "Basmati Rice Premium", "qty": 60, "price": Decimal("150.50"), "unit": "kg"},
+                        ],
+                    },
+                    # 5. Processing order 2 days ago
+                    {
+                        "vendor": v1, "supplier": s2,
+                        "title": "Spices & Beverages Delivery",
+                        "status": "processing", "priority": "normal",
+                        "created_days_ago": 2, "price": Decimal("7800.00"),
+                        "items": [
+                            {"name": "Tea Leaves (CTC)", "qty": 20, "price": Decimal("320.00"), "unit": "kg"},
+                        ],
+                    },
+                    # 6. Pending order placed today
+                    {
+                        "vendor": v1, "supplier": s1,
+                        "title": "Fresh Vegetable & Dal Emergency Batch",
+                        "status": "pending", "priority": "urgent",
+                        "created_days_ago": 0, "price": Decimal("4800.00"),
+                        "items": [
+                            {"name": "Toor Dal", "qty": 40, "price": Decimal("120.00"), "unit": "kg"},
+                        ],
+                    },
+                    # 7. Delivered order 1 day ago awaiting completion confirmation
+                    {
+                        "vendor": v1, "supplier": s3,
+                        "title": "Moong Dal Wholesale Consignment",
+                        "status": "delivered", "priority": "normal",
+                        "created_days_ago": 6, "price": Decimal("11000.00"),
+                        "items": [
+                            {"name": "Moong Dal", "qty": 100, "price": Decimal("110.00"), "unit": "kg"},
+                        ],
+                    },
+                    # 8. Cancelled order 14 days ago
+                    {
+                        "vendor": v1, "supplier": s1,
+                        "title": "Surplus Trial Order (Cancelled by vendor)",
+                        "status": "cancelled", "priority": "low",
+                        "created_days_ago": 14, "price": Decimal("2500.00"),
+                        "items": [
+                            {"name": "White Sugar", "qty": 50, "price": Decimal("44.00"), "unit": "kg"},
+                        ],
+                    },
+                ]
 
-                ord2 = OrderRequest(
-                    vendor_company_id=vendor_user.company_id,
-                    supplier_company_id=abc_supplier.company_id,
-                    created_by_user_id=vendor_user.id,
-                    title="Monthly Grocery Restock — August",
-                    description="Standard grocery stock replenishment for Coimbatore branch.",
-                    quantity=170, unit="kg",
-                    estimated_price=Decimal("15200.00"),
-                    delivery_date=today + timedelta(days=9),
-                    delivery_address="45, MG Road, Coimbatore, Tamil Nadu - 641001",
-                    priority="high", status="pending",
-                )
-                db.add(ord2)
-                await db.flush()
-                db.add_all([
-                    OrderRequestItem(order_request_id=ord2.id, product_name="Sona Masoori Rice", quantity=100, unit="kg", estimated_price=Decimal("75.00")),
-                    OrderRequestItem(order_request_id=ord2.id, product_name="Toor Dal", quantity=40, unit="kg", estimated_price=Decimal("120.00")),
-                    OrderRequestItem(order_request_id=ord2.id, product_name="Refined Sunflower Oil", quantity=30, unit="liters", estimated_price=Decimal("96.67")),
-                ])
+                for b in orders_blueprint:
+                    c_time = now - timedelta(days=b["created_days_ago"])
+                    ord_req = OrderRequest(
+                        vendor_company_id=b["vendor"].company_id,
+                        supplier_company_id=b["supplier"].company_id,
+                        created_by_user_id=b["vendor"].id,
+                        title=b["title"],
+                        description=f"Generated seed demo procurement record for {b['title']}.",
+                        quantity=sum(it["qty"] for it in b["items"]),
+                        unit=b["items"][0]["unit"],
+                        estimated_price=b["price"],
+                        delivery_date=today + timedelta(days=5 - b["created_days_ago"]),
+                        delivery_address="45, MG Road, Coimbatore, Tamil Nadu - 641001",
+                        priority=b["priority"],
+                        status=b["status"],
+                        created_at=c_time,
+                        updated_at=c_time,
+                    )
+                    db.add(ord_req)
+                    await db.flush()
 
-                ord3 = OrderRequest(
-                    vendor_company_id=vendor_user.company_id,
-                    supplier_company_id=abc_supplier.company_id,
-                    created_by_user_id=vendor_user.id,
-                    title="Fresh Fruits — Mango Season Special",
-                    description="Alphonso and Banganapalli seasonal mango batch delivery.",
-                    quantity=60, unit="kg",
-                    estimated_price=Decimal("9500.00"),
-                    delivery_date=today + timedelta(days=1),
-                    delivery_address="45, MG Road, Coimbatore, Tamil Nadu - 641001",
-                    priority="medium", status="accepted",
-                    supplier_response="Confirmed. Will deliver by 12th morning.",
-                    responded_at=datetime.now() - timedelta(hours=18),
-                )
-                db.add(ord3)
-                await db.flush()
-                db.add_all([
-                    OrderRequestItem(order_request_id=ord3.id, product_name="Alphonso Mangoes", quantity=35, unit="kg", estimated_price=Decimal("180.00")),
-                    OrderRequestItem(order_request_id=ord3.id, product_name="Banganapalli Mangoes", quantity=25, unit="kg", estimated_price=Decimal("128.00")),
-                ])
+                    for it in b["items"]:
+                        item_rec = OrderRequestItem(
+                            order_request_id=ord_req.id,
+                            product_name=it["name"],
+                            product_name_snapshot=it["name"],
+                            quantity=it["qty"],
+                            unit=it["unit"],
+                            estimated_price=it["price"],
+                            unit_price=it["price"],
+                            line_subtotal=it["price"] * it["qty"],
+                            line_total=it["price"] * it["qty"],
+                            created_at=c_time,
+                        )
+                        db.add(item_rec)
 
-                ord4 = OrderRequest(
-                    vendor_company_id=vendor_user.company_id,
-                    supplier_company_id=abc_supplier.company_id,
-                    created_by_user_id=vendor_user.id,
-                    title="Regular Stock — Week 31",
-                    description="Fulfilled regular inventory batch for Week 31.",
-                    quantity=80, unit="kg",
-                    estimated_price=Decimal("12400.00"),
-                    delivery_date=today - timedelta(days=5),
-                    delivery_address="45, MG Road, Coimbatore, Tamil Nadu - 641001",
-                    priority="low", status="completed",
-                    supplier_response="Delivered and verified by store manager on 6 Aug 2026.",
-                    responded_at=datetime.now() - timedelta(days=5),
-                )
-                db.add(ord4)
-                await db.flush()
-                db.add_all([
-                    OrderRequestItem(order_request_id=ord4.id, product_name="Wheat Flour (Atta)", quantity=50, unit="kg", estimated_price=Decimal("48.00")),
-                    OrderRequestItem(order_request_id=ord4.id, product_name="White Sugar", quantity=30, unit="kg", estimated_price=Decimal("44.00")),
-                ])
+                    # Status history
+                    db.add(OrderStatusHistory(
+                        order_request_id=ord_req.id,
+                        changed_by_user_id=b["vendor"].id,
+                        old_status=None,
+                        new_status=b["status"],
+                        notes=f"Initial seeded status: {b['status']}",
+                        created_at=c_time,
+                    ))
+
+                    # Seed Invoice and Payment if specified
+                    if "invoice" in b:
+                        inv_data = b["invoice"]
+                        inv_date = today - timedelta(days=inv_data["days_ago"])
+                        inv_rec = Invoice(
+                            order_request_id=ord_req.id,
+                            invoice_number=inv_data["number"],
+                            supplier_company_id=b["supplier"].company_id,
+                            vendor_company_id=b["vendor"].company_id,
+                            created_by_user_id=b["supplier"].id,
+                            invoice_date=inv_date,
+                            due_date=inv_date + timedelta(days=15),
+                            currency="INR",
+                            subtotal=inv_data["subtotal"],
+                            tax_amount=inv_data["tax"],
+                            discount_amount=Decimal("0.00"),
+                            total_amount=inv_data["total"],
+                            paid_amount=inv_data["paid"],
+                            status="generated",
+                            payment_status=inv_data["status"],
+                            supplier_company_name=b["supplier"].full_name,
+                            vendor_company_name=b["vendor"].full_name,
+                            created_at=c_time + timedelta(hours=2),
+                        )
+                        db.add(inv_rec)
+                        await db.flush()
+
+                        # Invoice items
+                        for it in b["items"]:
+                            db.add(InvoiceItem(
+                                invoice_id=inv_rec.id,
+                                product_name_snapshot=it["name"],
+                                quantity=it["qty"],
+                                unit=it["unit"],
+                                unit_price=it["price"],
+                                line_subtotal=it["price"] * it["qty"],
+                                tax_rate=Decimal("0.05"),
+                                tax_amount=(it["price"] * it["qty"] * Decimal("0.05")).quantize(Decimal("0.01")),
+                                line_total=(it["price"] * it["qty"] * Decimal("1.05")).quantize(Decimal("0.01")),
+                            ))
+
+                        # Payment Record if paid > 0
+                        if inv_data["paid"] > Decimal("0.00"):
+                            db.add(PaymentRecord(
+                                invoice_id=inv_rec.id,
+                                amount=inv_data["paid"],
+                                payment_date=inv_date + timedelta(days=2),
+                                payment_method=inv_data.get("payment_method", "bank_transfer"),
+                                reference_number=f"PAY-UTR-{uuid.uuid4().hex[:8].upper()}",
+                                notes="Seeded authentic business payment settlement.",
+                                recorded_by_user_id=b["supplier"].id,
+                                created_at=c_time + timedelta(days=2),
+                            ))
 
         await db.commit()
-        print("[SEED] Database seeding completed successfully!")
+        print("[SEED] Database seeding with analytics data completed successfully!")
 
 
 if __name__ == "__main__":

@@ -87,6 +87,19 @@ class InventoryService:
         updates = data.model_dump(exclude_unset=True)
         if updates:
             await self.inv_repo.update_fields(inv, updates)
+
+        product = await self.prod_repo.get_by_id(product_id)
+        available = max(0, inv.quantity_on_hand - inv.quantity_reserved)
+        if available <= inv.reorder_level or available <= 0:
+            from app.services.notification_service import NotificationService
+            notif_service = NotificationService(self.db)
+            await notif_service.notify_inventory_stock_alert(
+                product=product,
+                inventory=inv,
+                available=available,
+                is_out_of_stock=(available <= 0),
+            )
+
         await self.db.commit()
         return compute_inventory_response(inv)
 
@@ -99,5 +112,18 @@ class InventoryService:
             await self.inv_repo.adjust_stock(inv, data.adjustment)
         except ValueError as e:
             raise ConflictException(detail=str(e))
+
+        product = await self.prod_repo.get_by_id(product_id)
+        available = max(0, inv.quantity_on_hand - inv.quantity_reserved)
+        if available <= inv.reorder_level or available <= 0:
+            from app.services.notification_service import NotificationService
+            notif_service = NotificationService(self.db)
+            await notif_service.notify_inventory_stock_alert(
+                product=product,
+                inventory=inv,
+                available=available,
+                is_out_of_stock=(available <= 0),
+            )
+
         await self.db.commit()
         return compute_inventory_response(inv)

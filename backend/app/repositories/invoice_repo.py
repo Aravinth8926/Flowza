@@ -3,7 +3,7 @@ from datetime import datetime, date
 from typing import Optional, List, Tuple
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_, and_, desc
+from sqlalchemy import select, func, or_, and_, desc, case
 from sqlalchemy.orm import selectinload
 from app.models.invoice import Invoice, InvoiceItem, PaymentRecord
 from app.models.order_request import OrderRequest, OrderRequestItem
@@ -146,8 +146,20 @@ class InvoiceRepository:
         )
         return list(result.scalars().all()), total
 
-    async def get_stats_for_company(self, company_id: uuid.UUID, is_supplier: bool) -> dict:
+    async def get_stats_for_company(self, company_id: Optional[uuid.UUID], is_supplier: bool) -> dict:
         """Compute financial totals and counts for supplier or vendor."""
+        if not company_id:
+            return {
+                "total_invoices": 0,
+                "total_amount": Decimal("0.00"),
+                "total_paid": Decimal("0.00"),
+                "total_outstanding": Decimal("0.00"),
+                "unpaid_count": 0,
+                "partially_paid_count": 0,
+                "paid_count": 0,
+                "overdue_count": 0,
+            }
+
         filter_col = Invoice.supplier_company_id if is_supplier else Invoice.vendor_company_id
         
         result = await self.db.execute(
@@ -155,10 +167,10 @@ class InvoiceRepository:
                 func.count(Invoice.id).label("total_invoices"),
                 func.coalesce(func.sum(Invoice.total_amount), Decimal("0.00")).label("total_amount"),
                 func.coalesce(func.sum(Invoice.paid_amount), Decimal("0.00")).label("total_paid"),
-                func.sum(func.case((Invoice.payment_status == "unpaid", 1), else_=0)).label("unpaid_count"),
-                func.sum(func.case((Invoice.payment_status == "partially_paid", 1), else_=0)).label("partial_count"),
-                func.sum(func.case((Invoice.payment_status == "paid", 1), else_=0)).label("paid_count"),
-                func.sum(func.case((Invoice.payment_status == "overdue", 1), else_=0)).label("overdue_count"),
+                func.sum(case((Invoice.payment_status == "unpaid", 1), else_=0)).label("unpaid_count"),
+                func.sum(case((Invoice.payment_status == "partially_paid", 1), else_=0)).label("partial_count"),
+                func.sum(case((Invoice.payment_status == "paid", 1), else_=0)).label("paid_count"),
+                func.sum(case((Invoice.payment_status == "overdue", 1), else_=0)).label("overdue_count"),
             ).where(filter_col == company_id, Invoice.is_deleted == False)
         )
         row = result.one()
@@ -167,14 +179,14 @@ class InvoiceRepository:
         outstanding_amt = max(Decimal("0.00"), total_amt - paid_amt)
 
         return {
-            "total_invoices": row.total_invoices or 0,
+            "total_invoices": int(row.total_invoices or 0),
             "total_amount": total_amt,
             "total_paid": paid_amt,
             "total_outstanding": outstanding_amt,
-            "unpaid_count": row.unpaid_count or 0,
-            "partially_paid_count": row.partial_count or 0,
-            "paid_count": row.paid_count or 0,
-            "overdue_count": row.overdue_count or 0,
+            "unpaid_count": int(row.unpaid_count or 0),
+            "partially_paid_count": int(row.partial_count or 0),
+            "paid_count": int(row.paid_count or 0),
+            "overdue_count": int(row.overdue_count or 0),
         }
 
     async def create_invoice(self, invoice: Invoice) -> Invoice:

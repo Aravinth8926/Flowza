@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.exceptions import FlowzaException
 from app.schemas.common import FlowzaErrorResponse, ErrorDetails
-from app.api.v1.routes import auth, users, profiles, suppliers, orders, products, inventory, cart, invoices
+from app.api.v1.routes import auth, users, profiles, suppliers, orders, products, inventory, cart, invoices, notifications, analytics
 from app.core.websocket import router as ws_router
 from app.database.session import engine
 from app.database.base import Base
@@ -22,6 +22,7 @@ from app.models import (
     cart as _cart_model,
     order_request as _order_request_model,
     invoice as _invoice_model,
+    notification as _notification_model,
 )
 
 # Ensure uploads directories exist before mounting static folder
@@ -29,29 +30,38 @@ os.makedirs("uploads", exist_ok=True)
 os.makedirs("uploads/avatars", exist_ok=True)
 os.makedirs("uploads/logos", exist_ok=True)
 
-app = FastAPI(
-    title="Flowza — B2B Supply Chain & Procurement API",
-    description="Backend services for B2B Vendor & Supplier Network",
-    version="1.0.0"
-)
-
-@app.on_event("startup")
-async def startup_db_init():
+# Application Lifespan
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Ensure base metadata exists
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    print("[DB] Database tables initialized successfully.")
+    yield
+    # Shutdown logic if any
 
-@app.middleware("http")
-async def log_options(request: Request, call_next):
-    if request.method == "OPTIONS":
-        print("OPTIONS Request Headers:", dict(request.headers))
-        print("CORS Configured Origins:", settings.cors_origins_list)
-    return await call_next(request)
+# Create FastAPI app instance
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    description="Scalable B2B E-commerce & Procurement Platform API",
+    version=settings.VERSION,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan,
+)
 
-# CORS Middleware
+# CORS configuration
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    settings.FRONTEND_URL,
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list or ["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,16 +70,16 @@ app.add_middleware(
 # Mount uploaded files directory as /static
 app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
+# Exception handlers
 def add_cors_headers(request: Request, response: JSONResponse) -> JSONResponse:
     origin = request.headers.get("origin")
-    if origin:
+    if origin and (origin in origins or "*" in origins):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "*"
         response.headers["Access-Control-Allow-Headers"] = "*"
     return response
 
-# Custom Flowza Exceptions handler
 @app.exception_handler(FlowzaException)
 async def flowza_exception_handler(request: Request, exc: FlowzaException):
     response = JSONResponse(
@@ -77,50 +87,44 @@ async def flowza_exception_handler(request: Request, exc: FlowzaException):
         content={
             "success": False,
             "error": {
-                "code": exc.code,
+                "code": exc.error_code,
                 "message": exc.detail,
-                "details": exc.details
+                "details": exc.extra or {},
             }
         }
     )
     return add_cors_headers(request, response)
 
-# FastAPI Request Validation Exception handler
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    details = []
+    errors = []
     for err in exc.errors():
-        details.append({
-            "loc": err.get("loc"),
-            "msg": err.get("msg"),
-            "type": err.get("type")
-        })
+        loc = ".".join([str(x) for x in err["loc"] if x != "body"])
+        errors.append(f"{loc}: {err['msg']}")
+    
     response = JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "success": False,
             "error": {
                 "code": "VALIDATION_ERROR",
-                "message": "Request validation failed",
-                "details": details
+                "message": "Invalid input provided.",
+                "details": {"validation_errors": errors},
             }
         }
     )
     return add_cors_headers(request, response)
 
-# Fallback Generic Exception handler
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    import traceback
-    traceback.print_exc()
     response = JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
             "success": False,
             "error": {
                 "code": "INTERNAL_SERVER_ERROR",
-                "message": "An unexpected error occurred on the server.",
-                "details": [str(exc)]
+                "message": "An unexpected error occurred.",
+                "details": {"error": str(exc)},
             }
         }
     )
@@ -136,6 +140,8 @@ app.include_router(products.router, prefix="/api/v1/products", tags=["Products"]
 app.include_router(inventory.router, prefix="/api/v1/inventory", tags=["Inventory"])
 app.include_router(cart.router, prefix="/api/v1/carts", tags=["Cart & Checkout"])
 app.include_router(invoices.router, prefix="/api/v1", tags=["Invoices & Financial Records"])
+app.include_router(notifications.router, prefix="/api/v1", tags=["Notifications & Communication"])
+app.include_router(analytics.router, prefix="/api/v1", tags=["Dashboards & Analytics"])
 app.include_router(ws_router, tags=["WebSocket"])
 
 @app.get("/", tags=["Root"])

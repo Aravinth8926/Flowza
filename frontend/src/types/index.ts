@@ -488,3 +488,58 @@ export interface CheckoutPayload {
   delivery_address?: string;
   notes?: string;
 }
+
+export type NotificationType =
+  | 'ORDER_CREATED'
+  | 'ORDER_ACCEPTED'
+  | 'ORDER_PROCESSING'
+  | 'ORDER_PACKED'
+  | 'ORDER_SHIPPED'
+  | 'ORDER_DELIVERED'
+  | 'ORDER_COMPLETED'
+  | 'ORDER_REJECTED'
+  | 'ORDER_CANCELLED'
+  | 'INVOICE_GENERATED'
+  | 'PAYMENT_RECORDED'
+  | 'PAYMENT_COMPLETED'
+  | 'INVENTORY_LOW_STOCK'
+  | 'INVENTORY_OUT_OF_STOCK'
+  | 'SYSTEM_NOTIFICATION';
+
+export interface NotificationItem {
+  id: string;
+  recipient_user_id: string;
+  recipient_company_id?: string | null;
+  type: NotificationType;
+  title: string;
+  message: string;
+  entity_type?: 'ORDER' | 'INVOICE' | 'INVENTORY' | 'SYSTEM' | null;
+  entity_id?: string | null;
+  is_read: boolean;
+  read_at?: string | null;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  extra_metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface NotificationPagination {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface NotificationListResponse {
+  items: NotificationItem[];
+  pagination: NotificationPagination;
+}
+
+export interface NotificationPreferences {
+  user_id: string;
+  order_notifications_enabled: boolean;
+  invoice_notifications_enabled: boolean;
+  payment_notifications_enabled: boolean;
+  inventory_notifications_enabled: boolean;
+  system_notifications_enabled: boolean;
+}
+

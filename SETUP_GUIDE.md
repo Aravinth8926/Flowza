@@ -73,18 +73,30 @@ pip install -r requirements.txt
 ### Step 5: Run Database Migrations
 Apply the initial schema and structural updates to your database:
 ```bash
-python -m alembic upgrade head
+# Windows (PowerShell/CMD)
+.\venv\Scripts\python -m alembic upgrade head
+
+# macOS/Linux
+./venv/bin/python -m alembic upgrade head
 ```
 
 ### Step 6: Seed Default Roles & Demo Data
 Seed the database with default roles (`admin`, `vendor`, `supplier`), demo accounts, and sample orders:
 ```bash
-python app/database/seed.py
+# Windows (PowerShell/CMD)
+.\venv\Scripts\python app/database/seed.py
+
+# macOS/Linux
+./venv/bin/python app/database/seed.py
 ```
 
 ### Step 7: Start the Backend Server
 ```bash
-python -m uvicorn app.main:app --port 8000 --reload
+# Windows (PowerShell/CMD)
+.\venv\Scripts\python -m uvicorn app.main:app --port 8000 --reload
+
+# macOS/Linux
+./venv/bin/python -m uvicorn app.main:app --port 8000 --reload
 ```
 *   The backend will be available at: **http://localhost:8000**
 *   Interactive API docs (Swagger UI): **http://localhost:8000/docs**

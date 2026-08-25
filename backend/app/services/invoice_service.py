@@ -15,7 +15,6 @@ from app.repositories.invoice_repo import InvoiceRepository
 from app.schemas.invoice import (
     InvoiceGenerateRequest,
     PaymentRecordCreate,
-    PaymentStatusUpdate,
     InvoiceResponse,
     InvoiceDetailResponse,
     InvoiceItemResponse,
@@ -295,8 +294,14 @@ class InvoiceService:
             max(Decimal("0.00"), invoice.subtotal + invoice.tax_amount - invoice.discount_amount)
         )
 
-        # Commit transaction atomically
+        # Add invoice and create persistent notification within the transaction
         await self.invoice_repo.create_invoice(invoice)
+        
+        from app.services.notification_service import NotificationService
+        notif_service = NotificationService(self.db)
+        await notif_service.notify_invoice_generated(invoice=invoice, order=order)
+
+        # Commit transaction atomically (including notifications)
         await self.db.commit()
 
         # Reload with all relations
@@ -413,36 +418,25 @@ class InvoiceService:
 
         # Update invoice totals
         invoice.paid_amount = _quantize_money(invoice.paid_amount + payment_amount)
-        if invoice.paid_amount >= invoice.total_amount:
+        is_completed = (invoice.paid_amount >= invoice.total_amount)
+        if is_completed:
             invoice.payment_status = "paid"
         else:
             invoice.payment_status = "partially_paid"
 
-        await self.db.commit()
-        return await self.invoice_repo.get_by_id(invoice.id)
-
-    async def update_payment_status(
-        self,
-        invoice_id: uuid.UUID,
-        current_user: User,
-        req: PaymentStatusUpdate,
-    ) -> Invoice:
-        """Supplier or admin updates payment status directly."""
-        invoice = await self.get_invoice_by_id(invoice_id, current_user)
-
-        user_role = await self._resolve_user_role(current_user)
-        if user_role != "admin" and current_user.company_id != invoice.supplier_company_id:
-            raise PermissionDeniedException(detail="Only the supplier company or an admin may change payment status")
-
-        target_status = req.payment_status.lower()
-        invoice.payment_status = target_status
-        if target_status == "paid":
-            invoice.paid_amount = invoice.total_amount
-        elif target_status == "unpaid":
-            invoice.paid_amount = Decimal("0.00")
+        # Create persistent notification within transaction
+        from app.services.notification_service import NotificationService
+        notif_service = NotificationService(self.db)
+        await notif_service.notify_payment_recorded(
+            invoice=invoice,
+            payment=record,
+            is_completed=is_completed,
+        )
 
         await self.db.commit()
         return await self.invoice_repo.get_by_id(invoice.id)
+
+
 
     async def get_stats(self, current_user: User) -> dict:
         """Get summary stats for current company."""

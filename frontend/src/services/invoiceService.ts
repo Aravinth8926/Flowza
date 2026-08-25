@@ -46,12 +46,7 @@ export const invoiceService = {
     return response.data.data;
   },
 
-  updatePaymentStatus: async (invoiceId: string, paymentStatus: string): Promise<Invoice> => {
-    const response = await api.patch(`/api/v1/invoices/${invoiceId}/payment-status`, {
-      payment_status: paymentStatus,
-    });
-    return response.data.data;
-  },
+
 
   recordPayment: async (invoiceId: string, payload: RecordPaymentPayload): Promise<Invoice> => {
     const response = await api.post(`/api/v1/invoices/${invoiceId}/payments`, payload);

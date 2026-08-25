@@ -1,19 +1,65 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { Sidebar } from './Sidebar';
 import { useSidebarStore } from '../../store/sidebar';
 import { useThemeStore } from '../../store/theme';
 import { useAuthStore } from '../../store/auth';
+import { useWebSocket } from '../../hooks/useWebSocket';
+import { NotificationBell } from '../notifications/NotificationBell';
 import { Menu, Sun, Moon, LogOut, User as UserIcon, Settings, ChevronRight, ShieldCheck } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 
 export const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { isCollapsed, toggle } = useSidebarStore();
   const { resolvedTheme, setTheme } = useThemeStore();
   const { user, logout } = useAuthStore();
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
+
+  // Real-time WebSocket event handler
+  const handleWebSocketMessage = useCallback(
+    (payload: any) => {
+      // Invalidate notifications queries
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-bell-preview'] });
+
+      // Invalidate relevant business queries
+      if (payload.type?.startsWith('ORDER_') || payload.event === 'ORDER_STATUS_CHANGED') {
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
+        queryClient.invalidateQueries({ queryKey: ['order'] });
+      }
+      if (payload.type?.startsWith('INVOICE_') || payload.type?.startsWith('PAYMENT_')) {
+        queryClient.invalidateQueries({ queryKey: ['invoices'] });
+        queryClient.invalidateQueries({ queryKey: ['invoice'] });
+      }
+      if (payload.type?.startsWith('INVENTORY_')) {
+        queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      }
+
+      // Display dynamic toast
+      if (payload.title && payload.message) {
+        if (payload.priority === 'urgent' || payload.type?.includes('REJECTED') || payload.type?.includes('OUT_OF_STOCK')) {
+          toast.error(payload.title, {
+            description: payload.message,
+            duration: 6000,
+          });
+        } else {
+          toast.success(payload.title, {
+            description: payload.message,
+            duration: 5000,
+          });
+        }
+      }
+    },
+    [queryClient]
+  );
+
+  useWebSocket(handleWebSocketMessage);
 
   const handleLogout = async () => {
     await logout();
@@ -62,7 +108,10 @@ export const DashboardLayout: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Notification Center Bell */}
+            <NotificationBell />
+
             {/* Theme Toggle */}
             <button
               onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}

@@ -10,6 +10,7 @@ from app.models.inventory import Inventory
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
 from app.models.invoice import Invoice, InvoiceItem, PaymentRecord
+from app.models.notification import Notification, NotificationPreference
 
 __all__ = [
     "Base",
@@ -27,5 +28,7 @@ __all__ = [
     "Invoice",
     "InvoiceItem",
     "PaymentRecord",
+    "Notification",
+    "NotificationPreference",
 ]
 

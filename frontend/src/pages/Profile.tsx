@@ -12,9 +12,10 @@ import { Button } from '../components/ui/Button';
 import { Dialog } from '../components/ui/Dialog';
 import { Avatar } from '../components/ui/Avatar';
 import { toast } from 'sonner';
-import { User as UserIcon, Building, ShieldAlert, Key, Upload, Trash2, ShieldX } from 'lucide-react';
+import { User as UserIcon, Building, ShieldAlert, Key, Upload, Trash2, ShieldX, Bell, ShoppingBag, Receipt, CreditCard, Package } from 'lucide-react';
 import { userService } from '../services/user.service';
 import { companyService } from '../services/company.service';
+import { notificationService } from '../services/notificationService';
 
 const personalSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -62,12 +63,46 @@ export const Profile: React.FC = () => {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [uploadingPic, setUploadingPic] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [prefsLoading, setPrefsLoading] = useState(false);
+  const [preferences, setPreferences] = useState({
+    order_notifications_enabled: true,
+    invoice_notifications_enabled: true,
+    payment_notifications_enabled: true,
+    inventory_notifications_enabled: true,
+    system_notifications_enabled: true,
+  });
 
   useEffect(() => {
     fetchProfile().catch(() => {});
     fetchCompany().catch(() => {});
     fetchAddress().catch(() => {});
+    notificationService.getPreferences().then((p) => {
+      if (p) {
+        setPreferences({
+          order_notifications_enabled: p.order_notifications_enabled ?? true,
+          invoice_notifications_enabled: p.invoice_notifications_enabled ?? true,
+          payment_notifications_enabled: p.payment_notifications_enabled ?? true,
+          inventory_notifications_enabled: p.inventory_notifications_enabled ?? true,
+          system_notifications_enabled: p.system_notifications_enabled ?? true,
+        });
+      }
+    }).catch(() => {});
   }, []);
+
+  const handleTogglePref = async (key: keyof typeof preferences) => {
+    const updated = { ...preferences, [key]: !preferences[key] };
+    setPreferences(updated);
+    try {
+      setPrefsLoading(true);
+      await notificationService.updatePreferences(updated);
+      toast.success('Notification preferences updated.');
+    } catch {
+      toast.error('Failed to update preferences.');
+      setPreferences(preferences); // rollback
+    } finally {
+      setPrefsLoading(false);
+    }
+  };
 
   const personalMethods = useForm<PersonalValues>({
     resolver: zodResolver(personalSchema),
@@ -217,6 +252,9 @@ export const Profile: React.FC = () => {
           <TabsTrigger value="company" className="rounded-lg font-semibold text-xs py-2">
             Company Info
           </TabsTrigger>
+          <TabsTrigger value="notifications" className="rounded-lg font-semibold text-xs py-2">
+            Notifications
+          </TabsTrigger>
           <TabsTrigger value="security" className="rounded-lg font-semibold text-xs py-2">
             Security & Account
           </TabsTrigger>
@@ -337,6 +375,114 @@ export const Profile: React.FC = () => {
                   </Button>
                 </form>
               </FormProvider>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Notifications Tab */}
+        <TabsContent value="notifications">
+          <Card className="glass-card">
+            <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                  <Bell size={18} />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold">Notification Preferences</CardTitle>
+                  <CardDescription className="text-xs">
+                    Choose the business alerts and channels you want to receive.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              {/* Order Notifications */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    <ShoppingBag size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Order Status Updates</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Receive notifications when orders are placed, accepted, packed, shipped, or delivered.
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={preferences.order_notifications_enabled}
+                  onChange={() => handleTogglePref('order_notifications_enabled')}
+                  disabled={prefsLoading}
+                  className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 accent-emerald-600 cursor-pointer"
+                />
+              </div>
+
+              {/* Invoice Notifications */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 mt-0.5">
+                    <Receipt size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Invoice Generations</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Get notified when suppliers generate and issue invoices for fulfilled purchase orders.
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={preferences.invoice_notifications_enabled}
+                  onChange={() => handleTogglePref('invoice_notifications_enabled')}
+                  disabled={prefsLoading}
+                  className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 accent-emerald-600 cursor-pointer"
+                />
+              </div>
+
+              {/* Payment Notifications */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-950/80 text-violet-600 dark:text-violet-400 mt-0.5">
+                    <CreditCard size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Payment Receipts & Settlements</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Audited payment entries, partial settlement alerts, and completed balance receipts.
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={preferences.payment_notifications_enabled}
+                  onChange={() => handleTogglePref('payment_notifications_enabled')}
+                  disabled={prefsLoading}
+                  className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 accent-emerald-600 cursor-pointer"
+                />
+              </div>
+
+              {/* Inventory Stock Alerts */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 mt-0.5">
+                    <Package size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">Warehouse Inventory Alerts</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Automated triggers when available stock falls below reorder thresholds or reaches zero.
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={preferences.inventory_notifications_enabled}
+                  onChange={() => handleTogglePref('inventory_notifications_enabled')}
+                  disabled={prefsLoading}
+                  className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 accent-emerald-600 cursor-pointer"
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

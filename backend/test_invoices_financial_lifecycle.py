@@ -52,7 +52,7 @@ from app.services.order_lifecycle_service import OrderLifecycleService
 from app.services.invoice_service import InvoiceService
 from app.services.pdf_service import InvoicePDFService
 from app.schemas.cart import CartItemAdd, CartItemUpdate, CheckoutRequest
-from app.schemas.invoice import InvoiceGenerateRequest, PaymentRecordCreate, PaymentStatusUpdate
+from app.schemas.invoice import InvoiceGenerateRequest, PaymentRecordCreate
 from app.core.exceptions import (
     NotFoundException, ConflictException, PermissionDeniedException, BadRequestException
 )

@@ -21,6 +21,7 @@ import VendorCart from './pages/vendor/VendorCart';
 import InventoryManagement from './pages/supplier/InventoryManagement';
 import { SupplierInvoices } from './pages/supplier/SupplierInvoices';
 import { VendorInvoices } from './pages/vendor/VendorInvoices';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { Profile } from './pages/Profile';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { ShieldAlert, Home, RefreshCw } from 'lucide-react';
@@ -265,7 +266,11 @@ export const App: React.FC = () => {
                 }
               />
 
-              {/* Shared Protected Profile / Settings */}
+              {/* Shared Protected Profile / Notifications / Settings */}
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/dashboard/vendor/notifications" element={<NotificationsPage />} />
+              <Route path="/dashboard/supplier/notifications" element={<NotificationsPage />} />
+              <Route path="/dashboard/admin/notifications" element={<NotificationsPage />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Profile />} />
             </Route>
