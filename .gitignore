@@ -23,7 +23,16 @@ backend/flowza.db
 .env
 .env.local
 .env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 backend/.env
+frontend/.env
+backend/.env.*
+frontend/.env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
 
 # Editor & OS
 .DS_Store
