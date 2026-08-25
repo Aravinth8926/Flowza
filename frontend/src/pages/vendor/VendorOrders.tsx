@@ -235,8 +235,8 @@ export const VendorOrders: React.FC = () => {
             <p className="text-xxs text-slate-400 mt-0.5">Awaiting supplier accept</p>
           </Card>
           <Card className="p-4 border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md">
-            <p className="text-xxs font-bold text-indigo-500 uppercase tracking-wider">In Fulfillment</p>
-            <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 font-mono">
+            <p className="text-xxs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">In Fulfillment</p>
+            <h3 className="text-2xl font-black text-cyan-600 dark:text-cyan-400 mt-1 font-mono">
               {(stats?.accepted_orders || 0) + (stats?.processing_orders || stats?.in_progress_orders || 0) + (stats?.packed_orders || 0) + (stats?.shipped_orders || 0)}
             </h3>
             <p className="text-xxs text-slate-400 mt-0.5">Processing, packed & in transit</p>

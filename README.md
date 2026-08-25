@@ -1,6 +1,5 @@
 # Flowza — B2B Supply Chain & Procurement Platform
-
-Flowza is a secure, GST-compliant B2B procurement platform that connects retail vendors and wholesale suppliers directly, simplifying order coordination and inventory supply chains.
+ 
 
 This repository holds **Sprint 1 — Project Foundation & Authentication**. All procurement, inventory, and business logic are mock/placeholder layouts for this sprint.
 

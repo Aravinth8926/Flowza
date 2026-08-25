@@ -61,7 +61,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             type="button"
             onClick={handleSubmit}
             disabled={!input.trim() || isLoading}
-            className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+            className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
             title="Send inquiry"
           >
             {isLoading ? (

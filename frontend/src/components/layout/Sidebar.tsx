@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { FlowzaLogo } from '../common/FlowzaLogo';
 
 export const Sidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -155,19 +156,7 @@ export const Sidebar: React.FC = () => {
         <div>
           <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/60">
             <div className="flex items-center space-x-3 overflow-hidden">
-              <div className="h-9 w-9 shrink-0 rounded-xl bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center text-white dark:text-slate-950 font-bold text-base shadow-sm">
-                F
-              </div>
-              {!isCollapsed && (
-                <div className="flex flex-col truncate">
-                  <span className="font-heading font-bold text-base text-slate-900 dark:text-white tracking-tight">
-                    Flowza
-                  </span>
-                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                    {user?.company?.company_name || 'Enterprise'}
-                  </span>
-                </div>
-              )}
+              <FlowzaLogo size="xs" showText={!isCollapsed} />
             </div>
 
             {/* Mobile Close Button */}

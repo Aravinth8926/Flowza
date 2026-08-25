@@ -127,7 +127,7 @@ export const FlowzaAssistant: React.FC = () => {
       {/* Top Header Card */}
       <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-white dark:bg-[#0E1015] border border-slate-200/80 dark:border-slate-800/80 shadow-xs mb-3 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 flex items-center justify-center font-bold shadow-sm shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-sm shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
@@ -229,7 +229,7 @@ export const FlowzaAssistant: React.FC = () => {
             {/* Investigating State Indicator */}
             {isLoading && (
               <div className="flex items-center gap-3 my-3">
-                <div className="w-8 h-8 rounded-xl bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center text-white dark:text-slate-950 shrink-0 shadow-sm animate-pulse">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
                   <Bot className="w-4 h-4" />
                 </div>
                 <ToolActivityBadge toolName={activeTool} isInvestigating={true} />

@@ -638,7 +638,7 @@ export const NewOrderRequest: React.FC = () => {
                               type="button"
                               onClick={() => handleRemoveItem(item.id)}
                               title="Delete Item"
-                              className="p-1.5 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
                             >
                               <Trash2 size={14} />
                             </button>

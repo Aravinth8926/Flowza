@@ -8,9 +8,9 @@ import { useThemeStore } from '../../store/theme';
 import { Button } from '../../components/ui/Button';
 import { FormInput } from '../../components/forms/FormComponents';
 import { Checkbox } from '../../components/ui/Checkbox';
+import { FlowzaLogo } from '../../components/common/FlowzaLogo';
 import { toast } from 'sonner';
-import { ArrowLeft, Lock, ShieldCheck, Sun, Moon, Store, Truck, Shield } from 'lucide-react';
-import { Badge } from '../../components/ui/Badge';
+import { ArrowLeft, Sun, Moon, Store, Truck, Shield } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -74,122 +74,129 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] relative flex items-center justify-center py-12 px-4 bg-[#FAFAFA] dark:bg-[#08090A] text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen relative flex items-center justify-center py-12 px-4 bg-[#F8F8F6] dark:bg-[#0A0A0B] text-neutral-900 dark:text-neutral-100 transition-colors duration-200">
       {/* Top Header Controls */}
       <div className="absolute top-6 left-4 sm:left-8 right-4 sm:right-8 flex items-center justify-between z-20">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-heading"
+          className="inline-flex items-center gap-2 text-xs font-mono font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white transition-colors"
         >
-          <ArrowLeft size={16} /> Back to Overview
+          <ArrowLeft size={14} /> Back to Overview
         </Link>
         <button
           onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-          className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
+          className="p-2 rounded text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200/60 dark:hover:bg-neutral-800 transition-all cursor-pointer"
           aria-label="Toggle theme"
         >
-          {resolvedTheme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+          {resolvedTheme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>
       </div>
 
       {/* Main Login Card */}
       <div className="w-full max-w-md my-auto">
-        <div className="double-bezel">
-          <div className="double-bezel-inner p-6 sm:p-8 space-y-6">
-            {/* Header */}
-            <div className="text-center space-y-2">
-              <div className="h-11 w-11 rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 font-extrabold text-xl flex items-center justify-center mx-auto shadow-sm">
-                F
-              </div>
-              <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                Sign in to Flowza
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Access your B2B trade workspace & operational dashboard
-              </p>
+        <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#121215] shadow-lg p-6 sm:p-8 space-y-6">
+          {/* Header & Logo */}
+          <div className="space-y-3">
+            <div className="flex pb-1">
+              <FlowzaLogo size="md" badge="B2B Network" />
             </div>
+            <h1 className="font-heading text-2xl font-extrabold text-neutral-950 dark:text-white tracking-tight">
+              Sign in to Workspace
+            </h1>
+            <p className="text-xs text-neutral-500 font-mono">
+              Access your real-time procurement & supplier dashboard
+            </p>
+          </div>
 
-            {/* Quick-Fill Demo Pills */}
-            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 space-y-2">
-              <p className="text-[11px] font-mono uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">
-                Instant Demo Quick-Fill:
-              </p>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => quickFill('vendor@supermarket.com')}
-                  className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-600 cursor-pointer flex flex-col items-center gap-1 transition-all"
-                >
-                  <Store size={14} className="text-indigo-500" />
-                  <span>Vendor</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickFill('abc@distributors.com')}
-                  className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-600 cursor-pointer flex flex-col items-center gap-1 transition-all"
-                >
-                  <Truck size={14} className="text-emerald-500" />
-                  <span>Supplier</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickFill('admin@flowza.com')}
-                  className="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-600 cursor-pointer flex flex-col items-center gap-1 transition-all"
-                >
-                  <Shield size={14} className="text-rose-500" />
-                  <span>Admin</span>
-                </button>
-              </div>
+          {/* Quick-Fill Demo Pills */}
+          <div className="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-2">
+            <p className="text-[10px] font-mono uppercase font-bold text-neutral-500 tracking-wider">
+              Instant Demo Quick-Fill:
+            </p>
+            <div className="grid grid-cols-3 gap-1.5 font-mono">
+              <button
+                type="button"
+                onClick={() => quickFill('vendor@supermarket.com')}
+                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[11px] font-medium text-neutral-700 dark:text-neutral-300 hover:border-amber-500 hover:text-amber-600 transition-all cursor-pointer shadow-xs"
+              >
+                <Store size={12} className="text-amber-500" />
+                <span>Vendor</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => quickFill('abc@distributors.com')}
+                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[11px] font-medium text-neutral-700 dark:text-neutral-300 hover:border-amber-500 hover:text-amber-600 transition-all cursor-pointer shadow-xs"
+              >
+                <Truck size={12} className="text-amber-500" />
+                <span>Supplier</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => quickFill('admin@flowza.com', 'AdminPassword123!')}
+                className="flex items-center justify-center gap-1 py-1.5 px-2 rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[11px] font-medium text-neutral-700 dark:text-neutral-300 hover:border-amber-500 hover:text-amber-600 transition-all cursor-pointer shadow-xs"
+              >
+                <Shield size={12} className="text-amber-500" />
+                <span>Admin</span>
+              </button>
             </div>
+          </div>
 
-            {/* Login Form */}
-            <FormProvider {...methods}>
-              <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
-                <FormInput
-                  name="email"
-                  label="Work Email Address"
-                  type="email"
-                  placeholder="name@company.com"
-                  required
-                />
+          {/* Form */}
+          <FormProvider {...methods}>
+            <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
+              <FormInput
+                name="email"
+                label="Business Email"
+                type="email"
+                placeholder="name@company.com"
+                autoComplete="email"
+                required
+              />
+
+              <div className="space-y-1">
                 <FormInput
                   name="password"
-                  label="Account Password"
+                  label="Password"
                   type="password"
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   required
                 />
+              </div>
 
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <Checkbox
-                    name="remember_me"
-                    label="Keep me signed in"
-                  />
-                  <a href="#" className="text-emerald-600 dark:text-emerald-400 hover:underline">
-                    Forgot Password?
-                  </a>
-                </div>
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  isLoading={loading}
-                  className="w-full text-sm font-semibold mt-2"
+              <div className="flex items-center justify-between pt-1 text-xs font-mono">
+                <Checkbox name="remember_me" label="Remember for 30 days" />
+                <a
+                  href="#forgot"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toast.info('Demo password is: Password123! (or AdminPassword123!)');
+                  }}
+                  className="text-amber-600 dark:text-amber-400 hover:underline"
                 >
-                  <Lock size={16} />
-                  <span>Authenticate Session</span>
-                </Button>
-              </form>
-            </FormProvider>
+                  Forgot password?
+                </a>
+              </div>
 
-            {/* Registration Footer */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/60 text-center text-xs text-slate-500 dark:text-slate-400">
-              New to Flowza?{' '}
-              <Link to="/register" className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">
-                Create Organization Account
-              </Link>
-            </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 rounded text-xs font-mono font-bold bg-neutral-950 text-white dark:bg-amber-500 dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-amber-400 transition-all cursor-pointer shadow-md disabled:opacity-50"
+              >
+                {loading ? 'Authenticating...' : 'Sign In to Workspace →'}
+              </button>
+            </form>
+          </FormProvider>
+
+          {/* Register Link */}
+          <div className="pt-2 text-center text-xs text-neutral-500 border-t border-neutral-100 dark:border-neutral-800">
+            Don't have an enterprise account?{' '}
+            <Link
+              to="/register"
+              className="font-semibold text-neutral-900 dark:text-white hover:underline"
+            >
+              Create Free Account
+            </Link>
           </div>
         </div>
       </div>

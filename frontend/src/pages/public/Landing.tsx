@@ -1,481 +1,652 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '../../components/layout/Navbar';
 import { Footer } from '../../components/layout/Footer';
-import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
-import { Accordion } from '../../components/ui/Accordion';
-import { Badge } from '../../components/ui/Badge';
 import {
-  Building,
-  Search,
-  FileText,
-  TrendingUp,
-  ShieldCheck,
   ArrowRight,
-  Zap,
+  Check,
   CheckCircle2,
-  PackageCheck,
-  Clock,
-  Sparkles,
-  Layers,
-  Activity,
-  ChevronRight,
   Store,
   Truck,
-  Cpu,
+  ShieldCheck,
   Receipt,
   Boxes,
+  Clock,
+  FileText,
+  Sparkles,
+  ChevronDown,
+  Building2,
   Lock,
 } from 'lucide-react';
 
 export const Landing: React.FC = () => {
   const navigate = useNavigate();
-  const [activeRole, setActiveRole] = useState<'vendor' | 'supplier' | 'admin'>('vendor');
-  const [simStep, setSimStep] = useState<number>(1);
+  const [activeSimStep, setActiveSimStep] = useState<number>(2);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  const features = [
+  const simulationSteps = [
     {
-      title: 'Verified Trade Directory',
-      desc: 'Connect directly with wholesale distributors with verified 15-character GSTIN profiles and regional logistics parameters.',
-      icon: <Building className="h-5 w-5 text-emerald-500" />,
-      tag: 'GST VERIFIED',
-      span: 'col-span-1 md:col-span-2 lg:col-span-2',
+      id: 1,
+      title: 'Order Placed',
+      actor: 'Retailer (Fresh Mart)',
+      action: 'Purchase order #FZ-2084 submitted for 20 bags Basmati Rice + 6 tins Sunflower Oil.',
+      status: 'Pending Supplier Review',
+      inventory: '100 On-Hand • 20 Requested',
     },
     {
-      title: 'Zero-Latency Catalog Sync',
-      desc: 'Real-time inventory levels, tiered quantity pricing, and SKU reservations updated in milliseconds.',
-      icon: <Boxes className="h-5 w-5 text-emerald-500" />,
-      tag: 'LIVE INVENTORY',
-      span: 'col-span-1 md:col-span-1 lg:col-span-1',
+      id: 2,
+      title: 'Stock Reserved & Confirmed',
+      actor: 'Wholesale Supplier (Apex FMCG)',
+      action: 'Supplier reviews order, accepts line items, and system immediately locks 20 units in reserve.',
+      status: 'Confirmed & Packed',
+      inventory: '100 On-Hand • 20 Reserved • 80 Available',
     },
     {
-      title: 'Native WebSocket Push Engine',
-      desc: 'Instant dispatch alerts, order status transitions, and multi-tenant live push events.',
-      icon: <Zap className="h-5 w-5 text-indigo-500" />,
-      tag: 'WSS REAL-TIME',
-      span: 'col-span-1 md:col-span-1 lg:col-span-1',
+      id: 3,
+      title: 'In-Transit Dispatch',
+      actor: 'Logistics Fleet',
+      action: 'Carrier picks up package. Both retailer and supplier monitor real-time fulfillment status.',
+      status: 'Out for Delivery',
+      inventory: '100 On-Hand • 20 Reserved • 80 Available',
     },
     {
-      title: 'Multi-Model Agentic AI Assistant',
-      desc: 'Ask operational questions about low stock, revenue, or pending purchase orders with zero hallucination and live tool execution telemetry.',
-      icon: <Sparkles className="h-5 w-5 text-emerald-500" />,
-      tag: 'GEMINI 3.6 / 3.5 AI',
-      span: 'col-span-1 md:col-span-2 lg:col-span-2',
+      id: 4,
+      title: 'Delivery & GST Invoice Ready',
+      actor: 'Retailer Receiving',
+      action: 'Retailer confirms physical delivery. Stock settles to 80 units and GST tax invoice is generated.',
+      status: 'Completed & Settled',
+      inventory: '80 On-Hand • 0 Reserved • 80 Available',
     },
-    {
-      title: 'Automated Invoices & PDF Engine',
-      desc: 'High-precision GST tax computations, partial payment settlement tracking, and ReportLab PDF downloads.',
-      icon: <Receipt className="h-5 w-5 text-sky-500" />,
-      tag: 'FINANCIAL INTEGRITY',
-      span: 'col-span-1 md:col-span-2 lg:col-span-2',
-    },
-    {
-      title: 'Enterprise Security & RBAC',
-      desc: 'OAuth2 JWT tokens, BCrypt password hashing, parameter-bound ORM queries, and immutable status audit trails.',
-      icon: <Lock className="h-5 w-5 text-emerald-500" />,
-      tag: 'SOC-2 READY',
-      span: 'col-span-1 md:col-span-1 lg:col-span-1',
-    },
-  ];
-
-  const metrics = [
-    { label: 'Fulfillment Accuracy', value: '99.98%' },
-    { label: 'WebSocket Push Latency', value: '< 180ms' },
-    { label: 'Verified Trade Partners', value: '12,500+' },
-    { label: 'Monthly Logistics Volume', value: '₹180Cr+' },
   ];
 
   const faqs = [
     {
-      id: 'faq-1',
-      title: 'What is Flowza and who is it built for?',
-      content: 'Flowza is a high-precision B2B Supply Chain & Procurement Network designed to connect retail vendors directly with wholesale suppliers, eliminating manual paperwork, telephone ordering delays, and inventory mismatch.',
+      q: 'How does Flowza prevent suppliers from overselling stock?',
+      a: 'The moment a wholesale supplier accepts an order, the required quantities are automatically locked in reserve. This prevents other retailers from ordering stock that is already committed.',
     },
     {
-      id: 'faq-2',
-      title: 'How does real-time WebSocket order dispatch work?',
-      content: 'When a vendor places an order, Flowza’s native WebSocket engine instantly pushes a high-priority payload to the supplier’s dashboard. Suppliers accept, adjust quantities, and dispatch with instant live client updates.',
+      q: 'Are the invoices valid for Indian GST filing?',
+      a: 'Yes. Invoices include verified 15-character GSTIN numbers for both retailer and supplier, complete with accurate CGST, SGST, or IGST breakdowns, ready for one-click PDF download.',
     },
     {
-      id: 'faq-3',
-      title: 'Is Flowza GST-compliant?',
-      content: 'Yes. Every company profile on Flowza includes validated 15-character GSTIN fields, verified billing addresses, and tax-accurate GST invoices with ReportLab PDF export.',
+      q: 'Can retailers order from multiple wholesale suppliers?',
+      a: 'Yes. Retailers can connect with multiple verified distributors on Flowza, place separate purchase orders, and manage all tracking and invoices from a single dashboard.',
     },
     {
-      id: 'faq-4',
-      title: 'How does the Flowza AI Business Assistant work?',
-      content: 'Flowza integrates an Agentic AI Assistant powered by Google Gemini with multi-model fallback. The assistant runs database-backed tools to retrieve live inventory, sales, and invoice data with zero hallucinations.',
+      q: 'How does the built-in AI Assistant help my business?',
+      a: 'The AI assistant can instantly answer questions like "Which items are low in stock?", "Show me pending orders from Apex FMCG", or "List overdue invoices this month" without digging through spreadsheets.',
     },
   ];
 
   return (
-    <div className="min-h-[100dvh] bg-[#FAFAFA] dark:bg-[#08090A] text-slate-900 dark:text-slate-100 selection:bg-emerald-500/20 selection:text-emerald-900 dark:selection:text-emerald-200">
-      {/* Navigation */}
+    <div className="min-h-screen bg-[#F7F6F2] dark:bg-[#0D0E12] text-[#111216] dark:text-[#F8F8FA] selection:bg-amber-500/20 selection:text-amber-950 dark:selection:text-amber-200 font-sans">
+      {/* Top Navigation */}
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative pt-32 md:pt-44 pb-16 md:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
-        {/* Subtle Ambient Background Grids */}
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+      {/* ========================================================= */}
+      {/* 1. HERO SECTION — ASYMMETRICAL SPLIT SCREEN               */}
+      {/* ========================================================= */}
+      <section className="pt-24 md:pt-32 pb-16 md:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          {/* LEFT 45%: Clean Business Narrative */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Small Eyebrow */}
+            <div className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-widest text-amber-700 dark:text-amber-400 font-bold">
+              <span className="w-2 h-2 bg-amber-500 rounded-xs" />
+              <span>For Retailers & Wholesale Suppliers</span>
+            </div>
 
-        <div className="text-center space-y-6 max-w-4xl mx-auto">
-          {/* Eyebrow Pill */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-mono font-medium tracking-wide uppercase bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 shadow-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Precision B2B Supply Chain Network</span>
+            {/* Clear Headline */}
+            <h1 className="font-heading text-4xl sm:text-5xl lg:text-[52px] font-black tracking-tight text-neutral-950 dark:text-white leading-[1.08]">
+              One wholesale order. Both sides in sync.
+            </h1>
+
+            {/* Supporting Value Copy */}
+            <p className="text-base sm:text-lg text-neutral-600 dark:text-neutral-300 leading-relaxed">
+              Flowza gives retailers and wholesale suppliers one shared workspace to place, confirm, and track purchase orders—with live inventory updates and GST-ready invoices.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="pt-2 flex flex-wrap items-center gap-4">
+              <button
+                onClick={() => navigate('/login')}
+                className="px-6 py-3.5 rounded-lg text-sm font-semibold bg-neutral-950 text-white dark:bg-amber-500 dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-amber-400 transition-all flex items-center gap-2 cursor-pointer shadow-sm hover:shadow-md"
+              >
+                <span>Get Started Free</span>
+                <ArrowRight size={15} />
+              </button>
+
+              <a
+                href="#how-it-works"
+                className="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white inline-flex items-center gap-1.5 transition-colors"
+              >
+                <span>See how it works</span>
+                <ArrowDown size={14} />
+              </a>
+            </div>
+
+            {/* Proof Badges */}
+            <div className="pt-6 border-t border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center gap-y-2 gap-x-6 text-xs text-neutral-600 dark:text-neutral-400 font-medium">
+              <span className="inline-flex items-center gap-1.5">
+                <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
+                Live order updates
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
+                GST-ready invoices
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
+                Secure order records
+              </span>
+            </div>
           </div>
 
-          {/* Massive Display Heading */}
-          <h1 className="font-heading text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.08]">
-            Wholesale Procurement, <br className="hidden sm:inline" />
-            <span className="text-emerald-600 dark:text-emerald-400">Zero Latency.</span>
-          </h1>
-
-          {/* High-Contrast Subtitle */}
-          <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
-            Connect verified retail vendors directly with wholesale suppliers. Live inventory sync, automated purchase orders, and AI-powered operations.
-          </p>
-
-          {/* Action CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4">
-            <Button
-              size="lg"
-              variant="primary"
-              trailingIcon={<ArrowRight size={16} />}
-              iconCircle={true}
-              onClick={() => navigate('/register')}
-              className="w-full sm:w-auto text-base font-semibold"
-            >
-              Get Started Free
-            </Button>
-            <Button
-              size="lg"
-              variant="secondary"
-              onClick={() => navigate('/login')}
-              className="w-full sm:w-auto text-base"
-            >
-              Launch Live Demo
-            </Button>
-          </div>
-
-          {/* Trust Badges */}
-          <div className="pt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500 dark:text-slate-400 font-mono">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck size={14} className="text-emerald-500" />
-              <span>GSTIN Verified Trade</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Zap size={14} className="text-indigo-500" />
-              <span>Instant WebSocket Push</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Sparkles size={14} className="text-emerald-500" />
-              <span>Agentic AI Copilot</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Live Interactive Supply Chain Simulator */}
-        <div id="simulator" className="mt-16 md:mt-24">
-          <div className="double-bezel max-w-5xl mx-auto">
-            <div className="double-bezel-inner p-6 md:p-8">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800/80">
+          {/* RIGHT 55%: Clean Shared Purchase Order Workspace Card */}
+          <div className="lg:col-span-7">
+            <div className="rounded-xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-[#12141A] text-neutral-900 dark:text-neutral-100 shadow-xl overflow-hidden">
+              {/* Workspace Card Header */}
+              <div className="px-5 py-4 bg-neutral-50 dark:bg-[#161820] border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
-                    <h2 className="font-heading text-lg md:text-xl font-bold text-slate-900 dark:text-white">
-                      Live Trade Lifecycle Simulator
-                    </h2>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Experience how a single purchase order flows seamlessly between Vendor and Supplier in real time.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4].map((step) => (
-                    <button
-                      key={step}
-                      onClick={() => setSimStep(step)}
-                      className={`h-8 px-3 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
-                        simStep === step
-                          ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950 font-bold'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-                      }`}
-                    >
-                      Step 0{step}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Simulator Stage Content */}
-              <div className="py-8 grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-                {/* Vendor Side */}
-                <div className={`p-5 rounded-2xl border transition-all ${simStep >= 1 ? 'border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono font-semibold uppercase text-emerald-600 dark:text-emerald-400">1. Retail Vendor</span>
-                    <Store size={18} className="text-slate-600 dark:text-slate-300" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Fresh Mart Supermarket</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">PO: ORD-2026-893B19</p>
-                  <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex justify-between text-xs font-mono">
-                    <span>Items: 40 Bags Rice</span>
-                    <span className="font-bold text-slate-900 dark:text-white">₹4,800.00</span>
-                  </div>
-                </div>
-
-                {/* WebSocket Push Stream */}
-                <div className="text-center space-y-2">
-                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 mx-auto">
-                    <Zap size={20} className={simStep === 2 ? 'animate-bounce' : ''} />
-                  </div>
-                  <p className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300">
-                    {simStep === 1 && '1. Vendor places order in live cart'}
-                    {simStep === 2 && '2. WebSocket pushes alert to Supplier (<180ms)'}
-                    {simStep === 3 && '3. Supplier accepts & reserves stock'}
-                    {simStep === 4 && '4. Order fulfilled & Invoice PDF ready'}
-                  </p>
-                  <span className="inline-block text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                    State: <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase">{simStep === 1 ? 'Pending' : simStep === 2 ? 'Dispatched' : simStep === 3 ? 'Accepted' : 'Completed'}</span>
+                  <span className="text-[10px] font-mono uppercase text-neutral-500 block font-semibold">
+                    Purchase Order
+                  </span>
+                  <span className="text-sm font-mono font-bold text-neutral-900 dark:text-white">
+                    #FZ-2084
                   </span>
                 </div>
 
-                {/* Supplier Side */}
-                <div className={`p-5 rounded-2xl border transition-all ${simStep >= 3 ? 'border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono font-semibold uppercase text-emerald-600 dark:text-emerald-400">2. Wholesale Supplier</span>
-                    <Truck size={18} className="text-slate-600 dark:text-slate-300" />
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    CONFIRMED
+                  </span>
+                </div>
+              </div>
+
+              {/* Connecting Parties Bar */}
+              <div className="p-5 border-b border-neutral-100 dark:border-neutral-800/80 bg-neutral-50/50 dark:bg-[#14161D]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                  <div className="p-3 rounded-lg bg-white dark:bg-[#181A22] border border-neutral-200/80 dark:border-neutral-800 space-y-0.5">
+                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                      Retailer (Buyer)
+                    </span>
+                    <p className="text-sm font-bold text-neutral-900 dark:text-white">
+                      Fresh Mart Supermarket
+                    </p>
+                    <p className="text-[11px] text-neutral-500">Coimbatore Central</p>
                   </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Apex FMCG Wholesale Ltd</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">GSTIN: 33AABCU9603R1ZM</p>
-                  <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex justify-between text-xs font-mono">
-                    <span>Stock: -40 Units</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">Auto-Sync OK</span>
+
+                  <div className="p-3 rounded-lg bg-white dark:bg-[#181A22] border border-neutral-200/80 dark:border-neutral-800 space-y-0.5">
+                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                      Wholesale Supplier
+                    </span>
+                    <p className="text-sm font-bold text-neutral-900 dark:text-white">
+                      Apex FMCG Wholesale
+                    </p>
+                    <p className="text-[11px] text-neutral-500">Tamil Nadu Hub</p>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 text-xs">
-                <span className="text-slate-500 dark:text-slate-400">Step {simStep} of 4</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSimStep(simStep < 4 ? simStep + 1 : 1)}
-                >
-                  {simStep < 4 ? 'Next Step →' : 'Replay Simulation ↺'}
-                </Button>
+              {/* Order Status Stepper */}
+              <div className="px-5 py-3.5 bg-white dark:bg-[#12141A] border-b border-neutral-100 dark:border-neutral-800/80">
+                <div className="flex items-center justify-between text-xs text-neutral-600 dark:text-neutral-400">
+                  <span className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 size={13} /> Placed
+                  </span>
+                  <span className="h-px w-6 bg-neutral-200 dark:bg-neutral-800" />
+                  <span className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 size={13} /> Confirmed
+                  </span>
+                  <span className="h-px w-6 bg-neutral-200 dark:bg-neutral-800" />
+                  <span className="flex items-center gap-1.5 font-semibold text-amber-600 dark:text-amber-400">
+                    <span className="w-3.5 h-3.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-[10px] font-bold">3</span>
+                    Stock Reserved
+                  </span>
+                  <span className="h-px w-6 bg-neutral-200 dark:bg-neutral-800" />
+                  <span className="flex items-center gap-1.5 text-neutral-400 dark:text-neutral-500">
+                    <span className="w-3.5 h-3.5 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-[10px]">4</span>
+                    Invoice Ready
+                  </span>
+                </div>
+              </div>
+
+              {/* Order Line Items Table */}
+              <div className="p-5 space-y-4">
+                <div className="rounded-lg border border-neutral-200/80 dark:border-neutral-800 overflow-hidden text-xs">
+                  <table className="w-full text-left">
+                    <thead className="bg-neutral-50 dark:bg-[#161820] text-neutral-500 border-b border-neutral-200/80 dark:border-neutral-800">
+                      <tr>
+                        <th className="p-3 font-semibold">Product Name</th>
+                        <th className="p-3 font-semibold">Quantity</th>
+                        <th className="p-3 font-semibold text-right">Unit Price</th>
+                        <th className="p-3 font-semibold text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800 text-neutral-700 dark:text-neutral-300">
+                      <tr>
+                        <td className="p-3 font-medium text-neutral-900 dark:text-white">
+                          Organic Basmati Rice (25kg)
+                        </td>
+                        <td className="p-3 font-mono">20 bags</td>
+                        <td className="p-3 text-right font-mono">₹200.00</td>
+                        <td className="p-3 text-right font-mono font-bold text-neutral-900 dark:text-white">
+                          ₹4,000.00
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-medium text-neutral-900 dark:text-white">
+                          Refined Sunflower Oil (5L)
+                        </td>
+                        <td className="p-3 font-mono">6 tins</td>
+                        <td className="p-3 text-right font-mono">₹150.00</td>
+                        <td className="p-3 text-right font-mono font-bold text-neutral-900 dark:text-white">
+                          ₹900.00
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Real-time Confirmation Highlights */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400">
+                      Inventory Status
+                    </span>
+                    <p className="font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+                      <Check size={14} className="text-amber-600 dark:text-amber-400" />
+                      20 units locked in reserve
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">
+                      GST Invoice
+                    </span>
+                    <p className="font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+                      <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
+                      GSTIN verified &amp; ready
+                    </p>
+                  </div>
+                </div>
+
+                {/* Total Line */}
+                <div className="flex items-center justify-between p-3.5 rounded-lg bg-neutral-900 text-white dark:bg-[#181A22] border border-neutral-800">
+                  <span className="text-xs text-neutral-300">
+                    Subtotal ₹4,900.00 + 5% GST (₹245.00)
+                  </span>
+                  <div className="text-right">
+                    <span className="text-[10px] text-neutral-400 uppercase block">Total Due</span>
+                    <span className="text-base font-bold font-mono text-amber-400">₹5,145.00</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Metrics Strip */}
-      <section className="py-12 border-y border-slate-200/80 dark:border-slate-800/80 bg-slate-100/60 dark:bg-[#0A0C10]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-            {metrics.map((m, idx) => (
-              <div key={idx} className="space-y-1">
-                <p className="font-heading text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white font-mono-num">
-                  {m.value}
-                </p>
-                <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-medium">
-                  {m.label}
-                </p>
-              </div>
-            ))}
+      {/* ========================================================= */}
+      {/* 2. BUILT FOR BOTH SIDES OF WHOLESALE                      */}
+      {/* ========================================================= */}
+      <section id="retailers" className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-neutral-200 dark:border-neutral-800">
+        <div className="mb-12 text-center max-w-3xl mx-auto space-y-2">
+          <span className="text-[11px] font-mono uppercase tracking-widest text-amber-700 dark:text-amber-400 font-bold">
+            Two Sided Procurement
+          </span>
+          <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-neutral-950 dark:text-white tracking-tight">
+            Built for both sides of wholesale.
+          </h2>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Whether you run a supermarket chain or a high-volume warehouse, Flowza keeps your operations aligned.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Card 1: For Retailers */}
+          <div className="p-8 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#12141A] space-y-6 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200">
+                For Retailers
+              </span>
+              <Store className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="font-heading text-2xl font-bold text-neutral-950 dark:text-white">
+                Order with clarity.
+              </h3>
+              <p className="text-xs text-neutral-500">
+                Stop guessing stock availability or losing track of WhatsApp orders.
+              </p>
+            </div>
+
+            <ul className="space-y-3.5 text-sm text-neutral-700 dark:text-neutral-300">
+              <li className="flex items-start gap-3">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <span><strong>Send structured purchase orders in minutes</strong> — clean line items with pricing and delivery terms.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <span><strong>See confirmed stock before you sell it</strong> — know exactly what is reserved and shipped.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <span><strong>Track every order in one place</strong> — live updates from supplier receipt to doorstep delivery.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <span><strong>Receive GST-ready invoices automatically</strong> — clean tax breakdowns with instant PDF downloads.</span>
+              </li>
+            </ul>
+
+            <div className="pt-2">
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+              >
+                <span>Launch Retailer Workspace</span>
+                <ArrowRight size={13} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Card 2: For Wholesale Suppliers */}
+          <div id="suppliers" className="p-8 rounded-xl border border-neutral-950/20 dark:border-amber-500/30 bg-neutral-50 dark:bg-[#151720] space-y-6 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                For Wholesale Suppliers
+              </span>
+              <Truck className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="font-heading text-2xl font-bold text-neutral-950 dark:text-white">
+                Fulfil with confidence.
+              </h3>
+              <p className="text-xs text-neutral-500">
+                Eliminate unconfirmed orders, missed requests, and manual billing errors.
+              </p>
+            </div>
+
+            <ul className="space-y-3.5 text-sm text-neutral-700 dark:text-neutral-300">
+              <li className="flex items-start gap-3">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <span><strong>Receive clean, complete purchase orders</strong> — verified buyer details, quantities, and GSTINs.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <span><strong>Confirm availability without phone calls</strong> — accept or adjust quantities with one click.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <span><strong>Reserve stock as orders are accepted</strong> — prevent duplicate sales across multiple buyers.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <span><strong>Keep order records and invoices organised</strong> — permanent, searchable, auditable transaction records.</span>
+              </li>
+            </ul>
+
+            <div className="pt-2">
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+              >
+                <span>Launch Supplier Workspace</span>
+                <ArrowRight size={13} />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Asymmetrical Bento Grid: Core Platform Features */}
-      <section id="features" className="py-20 md:py-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="space-y-4 max-w-2xl mb-12 md:mb-16">
-          <Badge variant="emerald" dot className="uppercase font-mono text-xs">
-            Architecture Matrix
-          </Badge>
-          <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Engineered for High-Frequency Trade.
+      {/* ========================================================= */}
+      {/* 3. HOW IT WORKS (3 SIMPLE STEPS)                          */}
+      {/* ========================================================= */}
+      <section id="how-it-works" className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-neutral-200 dark:border-neutral-800">
+        <div className="mb-12 space-y-2">
+          <span className="text-[11px] font-mono uppercase tracking-widest text-amber-700 dark:text-amber-400 font-bold">
+            Simple 3-Step Process
+          </span>
+          <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-neutral-950 dark:text-white tracking-tight">
+            From order to invoice, without the back-and-forth.
           </h2>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400">
-            Every feature in Flowza is purpose-built to eliminate reconciliation friction, reduce stockouts, and automate procurement workflows.
-          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
-          {features.map((f, idx) => (
-            <div key={idx} className={`double-bezel ${f.span}`}>
-              <div className="double-bezel-inner p-6 md:p-8 h-full flex flex-col justify-between space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200/80 dark:border-slate-700/80">
-                      {f.icon}
-                    </div>
-                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300">
-                      {f.tag}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Step 1 */}
+          <div className="p-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#12141A] space-y-4">
+            <span className="font-mono text-sm font-bold text-amber-600 dark:text-amber-400 block">
+              01 / PLACE
+            </span>
+            <h3 className="font-heading text-xl font-bold text-neutral-950 dark:text-white">
+              Retailer places an order
+            </h3>
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+              Select products from verified suppliers and send a structured, clean purchase order in minutes.
+            </p>
+          </div>
+
+          {/* Step 2 */}
+          <div className="p-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#12141A] space-y-4">
+            <span className="font-mono text-sm font-bold text-amber-600 dark:text-amber-400 block">
+              02 / CONFIRM
+            </span>
+            <h3 className="font-heading text-xl font-bold text-neutral-950 dark:text-white">
+              Supplier confirms availability
+            </h3>
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+              Review line items, confirm available stock, and lock inventory reservations immediately.
+            </p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="p-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#12141A] space-y-4">
+            <span className="font-mono text-sm font-bold text-amber-600 dark:text-amber-400 block">
+              03 / SYNC
+            </span>
+            <h3 className="font-heading text-xl font-bold text-neutral-950 dark:text-white">
+              Both sides stay updated
+            </h3>
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+              Track live shipment progress, maintain permanent digital records, and download GST-ready PDF invoices.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 4. INTERACTIVE ORDER SIMULATOR (TEST-DRIVE WORKFLOW)      */}
+      {/* ========================================================= */}
+      <section id="simulator" className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-neutral-200 dark:border-neutral-800">
+        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="space-y-2">
+            <span className="text-[11px] font-mono uppercase tracking-widest text-amber-700 dark:text-amber-400 font-bold">
+              Interactive Workflow
+            </span>
+            <h2 className="font-heading text-2xl sm:text-4xl font-extrabold text-neutral-950 dark:text-white tracking-tight">
+              See the order lifecycle in action.
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-1 bg-neutral-200/80 dark:bg-neutral-800 p-1 rounded-lg">
+            {simulationSteps.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setActiveSimStep(s.id)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                  activeSimStep === s.id
+                    ? 'bg-neutral-950 text-white dark:bg-amber-500 dark:text-neutral-950 shadow-xs'
+                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white'
+                }`}
+              >
+                Step 0{s.id}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Active Simulation Step View */}
+        <div className="p-6 md:p-8 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#12141A] shadow-sm">
+          {simulationSteps
+            .filter((s) => s.id === activeSimStep)
+            .map((s) => (
+              <div key={s.id} className="space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-neutral-100 dark:border-neutral-800">
+                  <div className="flex items-center gap-3">
+                    <span className="h-7 w-7 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono font-bold flex items-center justify-center text-xs">
+                      0{s.id}
                     </span>
+                    <div>
+                      <h3 className="font-heading text-lg font-bold text-neutral-950 dark:text-white">
+                        {s.title}
+                      </h3>
+                      <span className="text-xs text-neutral-500">Active Role: {s.actor}</span>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-heading text-lg md:text-xl font-bold text-slate-900 dark:text-white">
-                      {f.title}
-                    </h3>
-                    <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
-                      {f.desc}
+
+                  <span className="px-3 py-1 rounded font-medium text-xs bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700">
+                    Status: {s.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                  <div className="space-y-3 text-sm text-neutral-700 dark:text-neutral-300">
+                    <p className="leading-relaxed">{s.action}</p>
+                    <div className="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-xs">
+                      <span className="text-neutral-500 block mb-0.5 uppercase font-mono text-[10px]">
+                        Live Inventory Coordination
+                      </span>
+                      <span className="font-bold text-neutral-900 dark:text-white font-mono">{s.inventory}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-5 rounded-lg bg-neutral-900 text-white dark:bg-[#161820] space-y-2 border border-neutral-800 text-xs">
+                    <span className="text-amber-400 font-bold block mb-1 font-mono">
+                      // ORDER AUDIT TRAIL
+                    </span>
+                    <p className="text-neutral-300">
+                      Purchase Order #FZ-2084 updated to state '{s.status}'.
+                    </p>
+                    <p className="text-emerald-400 flex items-center gap-1.5">
+                      <Check size={13} /> Shared record synced across Retailer and Supplier workspaces.
                     </p>
                   </div>
                 </div>
-
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-xs font-mono text-emerald-600 dark:text-emerald-400">
-                  <span>Engine Active</span>
-                  <ChevronRight size={14} />
-                </div>
               </div>
+            ))}
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 5. GST, TRUST & COMPLIANCE                                */}
+      {/* ========================================================= */}
+      <section id="trust" className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-neutral-200 dark:border-neutral-800">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="p-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#12141A] space-y-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Receipt size={18} />
+            </div>
+            <h3 className="font-heading text-lg font-bold text-neutral-950 dark:text-white">
+              GST-Compliant Invoicing
+            </h3>
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+              Exact 2-decimal CGST, SGST, and IGST calculations with automated tax breakdown and instant PDF export.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#12141A] space-y-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Boxes size={18} />
+            </div>
+            <h3 className="font-heading text-lg font-bold text-neutral-950 dark:text-white">
+              Zero Overselling
+            </h3>
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+              Confirmed orders immediately reserve inventory in the warehouse, ensuring stock availability is always accurate.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#12141A] space-y-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <ShieldCheck size={18} />
+            </div>
+            <h3 className="font-heading text-lg font-bold text-neutral-950 dark:text-white">
+              Verified Business Network
+            </h3>
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+              Every retailer and supplier operates with verified credentials and company isolation for secure trade.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 6. FAQS                                                  */}
+      {/* ========================================================= */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-t border-neutral-200 dark:border-neutral-800">
+        <div className="mb-8 space-y-2">
+          <span className="text-[11px] font-mono uppercase tracking-widest text-amber-700 dark:text-amber-400 font-bold">
+            Frequently Asked Questions
+          </span>
+          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-neutral-950 dark:text-white tracking-tight">
+            Common questions about Flowza.
+          </h2>
+        </div>
+
+        <div className="space-y-2.5 text-xs">
+          {faqs.map((faq, idx) => (
+            <div
+              key={idx}
+              className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#12141A] overflow-hidden"
+            >
+              <button
+                onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                className="w-full p-4 text-left flex items-center justify-between gap-4 cursor-pointer focus:outline-none"
+              >
+                <span className="font-semibold text-sm text-neutral-900 dark:text-white">
+                  {faq.q}
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={`text-neutral-400 transition-transform ${
+                    openFaq === idx ? 'rotate-180 text-amber-500' : ''
+                  }`}
+                />
+              </button>
+
+              {openFaq === idx && (
+                <div className="px-4 pb-4 text-neutral-600 dark:text-neutral-400 leading-relaxed border-t border-neutral-100 dark:border-neutral-800 pt-3">
+                  {faq.a}
+                </div>
+              )}
             </div>
           ))}
         </div>
       </section>
 
-      {/* Role-Based Interactive Preview Strip */}
-      <section className="py-16 md:py-24 bg-slate-100/50 dark:bg-[#0B0D12] border-y border-slate-200/80 dark:border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 max-w-2xl mx-auto mb-10">
-            <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white">
-              Tailored Dashboards for Every Stakeholder
-            </h2>
-            <div className="inline-flex p-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-              <button
-                onClick={() => setActiveRole('vendor')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  activeRole === 'vendor'
-                    ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                }`}
-              >
-                Retail Vendor
-              </button>
-              <button
-                onClick={() => setActiveRole('supplier')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  activeRole === 'supplier'
-                    ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                }`}
-              >
-                Wholesale Supplier
-              </button>
-              <button
-                onClick={() => setActiveRole('admin')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  activeRole === 'admin'
-                    ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                }`}
-              >
-                Platform Admin
-              </button>
-            </div>
-          </div>
-
-          <div className="double-bezel max-w-4xl mx-auto">
-            <div className="double-bezel-inner p-6 md:p-8">
-              {activeRole === 'vendor' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="indigo" dot>VENDOR PROCUREMENT WORKSPACE</Badge>
-                    <span className="text-xs font-mono text-slate-500">Cart • Direct POs • Tax Invoices</span>
-                  </div>
-                  <h3 className="font-heading text-xl font-bold text-slate-900 dark:text-white">
-                    Build Multi-Supplier Orders and Track Live Deliveries
-                  </h3>
-                  <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Vendors can browse verified supplier catalogs, add items to supplier-isolated carts, submit structured purchase orders, and monitor real-time fulfillment status.
-                  </p>
-                </div>
-              )}
-
-              {activeRole === 'supplier' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="emerald" dot>SUPPLIER FULFILLMENT DESK</Badge>
-                    <span className="text-xs font-mono text-slate-500">Live Queue • Stock Sync • PDF Generator</span>
-                  </div>
-                  <h3 className="font-heading text-xl font-bold text-slate-900 dark:text-white">
-                    Accept Instant Orders, Manage Inventory & Issue Invoices
-                  </h3>
-                  <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Suppliers receive push notifications via WebSockets, accept or adjust quantities, maintain stock levels with reorder thresholds, and generate tax-compliant PDF invoices.
-                  </p>
-                </div>
-              )}
-
-              {activeRole === 'admin' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="destructive" dot>ENTERPRISE OVERSIGHT CONSOLE</Badge>
-                    <span className="text-xs font-mono text-slate-500">Platform Analytics • System Audit</span>
-                  </div>
-                  <h3 className="font-heading text-xl font-bold text-slate-900 dark:text-white">
-                    System-Wide Financial Health & Trade Volume Metrics
-                  </h3>
-                  <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Platform administrators monitor active organizations, total platform GMV, payment settlement velocities, and operational compliance audit trails across the entire network.
-                  </p>
-                </div>
-              )}
-
-              <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800/60 flex justify-end">
-                <Button size="sm" variant="primary" trailingIcon={<ArrowRight size={14} />} onClick={() => navigate('/login')}>
-                  Open {activeRole.toUpperCase()} Demo
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section id="faqs" className="py-20 md:py-32 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
-        <div className="text-center space-y-4 mb-12">
-          <Badge variant="neutral" className="uppercase font-mono text-xs">Knowledge Base</Badge>
-          <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-            Frequently Asked Questions
+      {/* ========================================================= */}
+      {/* 7. FINAL CALL TO ACTION                                   */}
+      {/* ========================================================= */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-neutral-200 dark:border-neutral-800">
+        <div className="rounded-2xl p-8 sm:p-12 bg-neutral-950 text-white dark:bg-[#14161F] border border-neutral-800 text-center space-y-6 max-w-4xl mx-auto">
+          <h2 className="font-heading text-3xl sm:text-4xl font-extrabold tracking-tight">
+            Ready to simplify wholesale ordering?
           </h2>
-        </div>
-
-        <Accordion items={faqs} />
-      </section>
-
-      {/* Final Call to Action */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-24">
-        <div className="double-bezel">
-          <div className="double-bezel-inner p-8 md:p-16 text-center space-y-6 bg-gradient-to-b from-slate-900 to-slate-950 text-white">
-            <h2 className="font-heading text-3xl sm:text-5xl font-extrabold tracking-tight">
-              Ready to Upgrade Your Supply Chain?
-            </h2>
-            <p className="text-slate-400 text-sm md:text-base max-w-xl mx-auto font-normal">
-              Join thousands of verified vendors and wholesale suppliers on Flowza’s high-precision B2B trade network.
-            </p>
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-              <Button
-                size="lg"
-                variant="primary"
-                trailingIcon={<ArrowRight size={16} />}
-                iconCircle={true}
-                onClick={() => navigate('/register')}
-              >
-                Create Account Free
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => navigate('/login')}
-                className="text-white border-white/20 hover:bg-white/10"
-              >
-                Explore Live Demo
-              </Button>
-            </div>
+          <p className="text-sm sm:text-base text-neutral-300 max-w-xl mx-auto leading-relaxed">
+            Join verified retailers and wholesale suppliers coordinating purchase orders with live inventory and automated GST invoices.
+          </p>
+          <div className="pt-2 flex justify-center">
+            <button
+              onClick={() => navigate('/login')}
+              className="px-8 py-3.5 rounded-lg text-sm font-semibold bg-amber-500 text-neutral-950 hover:bg-amber-400 transition-all flex items-center gap-2 cursor-pointer shadow-md hover:shadow-lg"
+            >
+              <span>Launch Workspace</span>
+              <ArrowRight size={15} />
+            </button>
           </div>
         </div>
       </section>
@@ -485,3 +656,10 @@ export const Landing: React.FC = () => {
     </div>
   );
 };
+
+const ArrowDown = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <polyline points="19 12 12 19 5 12"></polyline>
+  </svg>
+);

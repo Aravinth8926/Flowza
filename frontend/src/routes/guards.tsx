@@ -7,16 +7,18 @@ interface GuardProps {
   children: React.ReactNode;
 }
 
+const LoadingSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] dark:bg-[#08090A]">
+    <div className="h-8 w-8 rounded-full border-2 border-slate-200 dark:border-slate-800 border-t-emerald-500 animate-spin" />
+  </div>
+);
+
 export const AuthGuard: React.FC<GuardProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuthStore();
   const location = useLocation();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (!isAuthenticated) {
@@ -35,11 +37,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ children, allowedRoles }) 
   const { user, isAuthenticated, isLoading } = useAuthStore();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (!isAuthenticated || !user) {
@@ -60,11 +58,7 @@ export const PublicOnlyGuard: React.FC<GuardProps> = ({ children }) => {
   const { isAuthenticated, user, isLoading } = useAuthStore();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (isAuthenticated && user) {

@@ -299,7 +299,7 @@ export const IncomingOrders: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
                   activeTab === tab.id
-                    ? 'bg-slate-900 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-sm'
+                    ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                 }`}
               >
@@ -308,7 +308,7 @@ export const IncomingOrders: React.FC = () => {
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                       activeTab === tab.id
-                        ? 'bg-white/20 text-white dark:bg-slate-950/30 dark:text-slate-950'
+                        ? 'bg-white/20 text-white'
                         : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                     }`}
                   >

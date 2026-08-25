@@ -82,7 +82,7 @@ export const OrderTimeline: React.FC<OrderTimelineProps> = ({
                   <div
                     className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
                       isCurrent
-                        ? 'bg-emerald-500 text-slate-950 ring-4 ring-emerald-500/20 shadow-lg shadow-emerald-500/30 scale-110'
+                        ? 'bg-emerald-600 text-white ring-4 ring-emerald-500/20 shadow-lg shadow-emerald-500/30 scale-110'
                         : isPast
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                         : 'bg-slate-900 text-slate-500 border border-slate-800'
