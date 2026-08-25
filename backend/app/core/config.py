@@ -39,13 +39,23 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def normalize_database_url(cls, v: str) -> str:
+        from urllib.parse import quote_plus
         if not v:
             return "sqlite+aiosqlite:///./flowza.db"
         # Auto-normalize PostgreSQL connection strings for asyncpg
         if v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql+asyncpg://", 1)
-        if v.startswith("postgresql://"):
-            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+            v = v.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif v.startswith("postgresql://"):
+            v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+        # Handle unencoded @ symbols in database password
+        if "://" in v and v.count("@") > 1:
+            scheme, rest = v.split("://", 1)
+            user_info, host_info = rest.rsplit("@", 1)
+            if ":" in user_info:
+                username, password = user_info.split(":", 1)
+                encoded_password = quote_plus(password)
+                v = f"{scheme}://{username}:{encoded_password}@{host_info}"
         return v
 
     @property

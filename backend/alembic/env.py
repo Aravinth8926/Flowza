@@ -5,7 +5,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 
@@ -38,14 +38,14 @@ from app.models import (
 
 target_metadata = Base.metadata
 
-# Always override sqlalchemy.url from application environment settings
 from app.core.config import settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+escaped_url = settings.DATABASE_URL.replace("%", "%%")
+config.set_main_option("sqlalchemy.url", escaped_url)
 
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
-    url = config.get_main_option("sqlalchemy.url")
+    url = settings.DATABASE_URL
     if url.startswith("sqlite+aiosqlite:"):
         url = url.replace("sqlite+aiosqlite:", "sqlite:")
     elif url.startswith("postgresql+asyncpg:"):
@@ -80,15 +80,13 @@ async def run_migrations_online() -> None:
         connect_args = {
             "statement_cache_size": 0,
             "prepared_statement_cache_size": 0,
+            "prepared_statement_name_func": lambda: None,
         }
     elif "sqlite" in settings.DATABASE_URL:
         connect_args = {"check_same_thread": False}
 
-    configuration = config.get_section(config.config_ini_section, {})
-    
-    connectable = async_engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
+    connectable = create_async_engine(
+        settings.DATABASE_URL,
         poolclass=pool.NullPool,
         connect_args=connect_args,
     )

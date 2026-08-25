@@ -10,7 +10,7 @@ if "sqlite" in settings.DATABASE_URL:
         future=True,
     )
 else:
-    # Supabase PostgreSQL / asyncpg configuration
+    # Supabase PostgreSQL / asyncpg configuration (PgBouncer compatible)
     engine = create_async_engine(
         settings.DATABASE_URL,
         echo=False,
@@ -21,6 +21,7 @@ else:
         connect_args={
             "statement_cache_size": 0,
             "prepared_statement_cache_size": 0,
+            "prepared_statement_name_func": lambda: None,
         } if "asyncpg" in settings.DATABASE_URL else {},
     )
 

@@ -155,5 +155,20 @@ async def root():
 
 @app.get("/health", tags=["Health"])
 async def health():
-    return {"status": "ok", "app": "Flowza B2B Backend"}
+    db_status = "connected"
+    try:
+        from sqlalchemy import text
+        from app.database.session import AsyncSessionLocal
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("SELECT 1"))
+    except Exception:
+        db_status = "degraded"
+    return {
+        "status": "ok",
+        "database": db_status,
+        "app": "Flowza B2B Backend",
+        "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT,
+    }
+
 
