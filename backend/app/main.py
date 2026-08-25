@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.exceptions import FlowzaException
 from app.schemas.common import FlowzaErrorResponse, ErrorDetails
-from app.api.v1.routes import auth, users, profiles, suppliers, orders, products, inventory, cart, invoices, notifications, analytics
+from app.api.v1.routes import auth, users, profiles, suppliers, orders, products, inventory, cart, invoices, notifications, analytics, ai
 from app.core.websocket import router as ws_router
 from app.database.session import engine
 from app.database.base import Base
@@ -52,17 +52,12 @@ app = FastAPI(
 )
 
 # CORS configuration
-origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000",
-    settings.FRONTEND_URL,
-]
+origins = settings.cors_origins_list
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"^(https?://(localhost|127\.0\.0\.1)(:\d+)?|https://.*\.vercel\.app)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -74,7 +69,7 @@ app.mount("/static", StaticFiles(directory="uploads"), name="static")
 # Exception handlers
 def add_cors_headers(request: Request, response: JSONResponse) -> JSONResponse:
     origin = request.headers.get("origin")
-    if origin and (origin in origins or "*" in origins):
+    if origin:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "*"
@@ -83,14 +78,16 @@ def add_cors_headers(request: Request, response: JSONResponse) -> JSONResponse:
 
 @app.exception_handler(FlowzaException)
 async def flowza_exception_handler(request: Request, exc: FlowzaException):
+    code = getattr(exc, "code", getattr(exc, "error_code", "ERROR"))
+    details = getattr(exc, "details", getattr(exc, "extra", {}))
     response = JSONResponse(
         status_code=exc.status_code,
         content={
             "success": False,
             "error": {
-                "code": exc.error_code,
+                "code": code,
                 "message": exc.detail,
-                "details": exc.extra or {},
+                "details": details,
             }
         }
     )
@@ -143,6 +140,7 @@ app.include_router(cart.router, prefix="/api/v1/carts", tags=["Cart & Checkout"]
 app.include_router(invoices.router, prefix="/api/v1", tags=["Invoices & Financial Records"])
 app.include_router(notifications.router, prefix="/api/v1", tags=["Notifications & Communication"])
 app.include_router(analytics.router, prefix="/api/v1", tags=["Dashboards & Analytics"])
+app.include_router(ai.router, prefix="/api/v1", tags=["Agentic AI Assistant"])
 app.include_router(ws_router, tags=["WebSocket"])
 
 @app.get("/", tags=["Root"])

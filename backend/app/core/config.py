@@ -1,7 +1,7 @@
 import os
 from pydantic_settings import BaseSettings
 from pydantic import ConfigDict, field_validator
-from typing import List
+from typing import List, Optional
 
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.env"))
 
@@ -14,8 +14,21 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ENVIRONMENT: str = "development"  # "development", "staging", "production"
     FRONTEND_URL: str = "http://localhost:5173"
-    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,http://localhost:5174,http://127.0.0.1:5174"
+
+    # AI Configuration
+    AI_PROVIDER: str = "gemini"  # "gemini", "openai", "mock"
+    AI_MODEL: str = "gpt-4o-mini"
+    AI_API_KEY: Optional[str] = None
+    AI_BASE_URL: str = "https://api.openai.com/v1"
+    AI_TIMEOUT: int = 35
+    AI_MAX_TOOL_CALLS: int = 5
+
+    # Google Gemini Multi-Model Fallback Configuration
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODELS: str = "gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3-flash-preview,gemini-3.7-flash"
 
     model_config = ConfigDict(
         env_file=env_path if os.path.exists(env_path) else ".env",
@@ -41,5 +54,9 @@ class Settings(BaseSettings):
         if self.FRONTEND_URL and self.FRONTEND_URL not in origins:
             origins.append(self.FRONTEND_URL)
         return origins
+
+    @property
+    def gemini_models_list(self) -> List[str]:
+        return [m.strip() for m in self.GEMINI_MODELS.split(",") if m.strip()]
 
 settings = Settings()

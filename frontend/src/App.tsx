@@ -22,6 +22,7 @@ import InventoryManagement from './pages/supplier/InventoryManagement';
 import { SupplierInvoices } from './pages/supplier/SupplierInvoices';
 import { VendorInvoices } from './pages/vendor/VendorInvoices';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { FlowzaAssistant } from './pages/ai/FlowzaAssistant';
 import { Profile } from './pages/Profile';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { ShieldAlert, Home, RefreshCw } from 'lucide-react';
@@ -265,6 +266,13 @@ export const App: React.FC = () => {
                   </RoleGuard>
                 }
               />
+
+              {/* Flowza Agentic AI Assistant Routes */}
+              <Route path="/ai" element={<FlowzaAssistant />} />
+              <Route path="/dashboard/ai" element={<FlowzaAssistant />} />
+              <Route path="/dashboard/vendor/ai" element={<FlowzaAssistant />} />
+              <Route path="/dashboard/supplier/ai" element={<FlowzaAssistant />} />
+              <Route path="/dashboard/admin/ai" element={<FlowzaAssistant />} />
 
               {/* Shared Protected Profile / Notifications / Settings */}
               <Route path="/notifications" element={<NotificationsPage />} />

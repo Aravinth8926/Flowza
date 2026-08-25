@@ -26,7 +26,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative flex items-center">
           {leftIcon && (
-            <div className="absolute left-3.5 text-slate-400 dark:text-slate-500 pointer-events-none">
+            <div className="absolute left-3.5 text-slate-400 dark:text-slate-500 pointer-events-none flex items-center justify-center">
               {leftIcon}
             </div>
           )}
@@ -37,21 +37,21 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             disabled={disabled}
             className={twMerge(
               clsx(
-                'block w-full rounded-xl border px-3.5 py-2.5 text-sm font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all duration-200',
-                'bg-white text-slate-900 border-slate-200 dark:bg-slate-900/80 dark:text-slate-100 dark:border-slate-800',
+                'block w-full min-h-[42px] rounded-xl border px-3.5 py-2 text-sm font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all duration-150',
+                'bg-white text-slate-900 border-slate-200 dark:bg-[#0E1015] dark:text-slate-100 dark:border-slate-800',
                 'disabled:bg-slate-100 disabled:text-slate-400 dark:disabled:bg-slate-900/40 dark:disabled:text-slate-600 disabled:cursor-not-allowed',
                 leftIcon && 'pl-10',
                 rightIcon && 'pr-10',
                 error
-                  ? 'border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
-                  : 'focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20',
+                  ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
+                  : 'focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20',
                 className
               )
             )}
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3.5 text-slate-400 dark:text-slate-500">
+            <div className="absolute right-3.5 text-slate-400 dark:text-slate-500 flex items-center justify-center">
               {rightIcon}
             </div>
           )}
@@ -68,4 +68,3 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = 'Input';
-

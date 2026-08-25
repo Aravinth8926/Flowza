@@ -38,6 +38,7 @@ export interface User {
   phone: string;
   role_id: string;
   role?: Role;
+  company?: Company;
   profile_picture_url?: string;
   is_active: boolean;
   last_login_at?: string;
@@ -705,5 +706,53 @@ export interface AdminOverviewResponse {
   operational_health: AdminOperationalHealth;
   top_active_suppliers: TopSupplierItem[];
 }
+
+// ── PHASE 7: AGENTIC AI ASSISTANT TYPES ─────────────────────────────────────
+
+export interface AIToolCallDetail {
+  tool_name: string;
+  arguments: Record<string, any>;
+  result_summary?: string | null;
+}
+
+export interface AISuggestedAction {
+  label: string;
+  action_type: string;
+  path: string;
+  icon?: string;
+}
+
+export interface AIChatResponse {
+  conversation_id: string;
+  message: string;
+  tool_calls: AIToolCallDetail[];
+  sources: string[];
+  suggested_actions: AISuggestedAction[];
+  execution_time_ms: number;
+}
+
+export interface AIChatRequest {
+  message: string;
+  conversation_id?: string;
+}
+
+export interface AISuggestedQuestion {
+  category: string;
+  question: string;
+  icon: string;
+  suggested_for_role: string;
+}
+
+export interface ChatMessageItem {
+  id: string;
+  sender: 'user' | 'assistant';
+  text: string;
+  timestamp: string;
+  tool_calls?: AIToolCallDetail[];
+  sources?: string[];
+  suggested_actions?: AISuggestedAction[];
+  isError?: boolean;
+}
+
 
 

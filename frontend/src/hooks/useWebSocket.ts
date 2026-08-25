@@ -12,9 +12,14 @@ export function useWebSocket(onMessage: MessageHandler) {
   const connect = useCallback(() => {
     if (isUnmounted.current) return;
     const activeToken = token || localStorage.getItem('access_token');
-    if (!activeToken) return;
+    const apiBase = (
+      import.meta.env.VITE_API_BASE_URL ||
+      import.meta.env.VITE_API_URL ||
+      'http://localhost:8001'
+    ).replace(/\/+$/, '');
 
-    const wsHost = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
+    const defaultWsHost = apiBase.replace(/^http(s?):\/\//, (_match: string, s: string) => (s ? 'wss://' : 'ws://'));
+    const wsHost = (import.meta.env.VITE_WS_URL || defaultWsHost).replace(/\/+$/, '');
     const wsUrl = `${wsHost}/ws/${activeToken}`;
 
     try {

@@ -27,7 +27,7 @@ def upgrade() -> None:
         if 'is_deleted' not in cols:
             op.add_column(
                 tbl,
-                sa.Column('is_deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False)
+                sa.Column('is_deleted', sa.Boolean(), server_default=sa.text('false'), nullable=False)
             )
         if 'updated_at' not in cols:
             op.add_column(

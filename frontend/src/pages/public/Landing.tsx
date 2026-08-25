@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '../../components/layout/Navbar';
 import { Footer } from '../../components/layout/Footer';
 import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
 import { Accordion } from '../../components/ui/Accordion';
 import { Badge } from '../../components/ui/Badge';
 import {
   Building,
   Search,
   FileText,
-  UserCheck,
   TrendingUp,
   ShieldCheck,
   ArrowRight,
@@ -25,69 +25,64 @@ import {
   Store,
   Truck,
   Cpu,
+  Receipt,
+  Boxes,
+  Lock,
 } from 'lucide-react';
 
 export const Landing: React.FC = () => {
+  const navigate = useNavigate();
   const [activeRole, setActiveRole] = useState<'vendor' | 'supplier' | 'admin'>('vendor');
   const [simStep, setSimStep] = useState<number>(1);
 
   const features = [
     {
-      title: 'Verified Business Directory',
-      desc: 'Connect with verified B2B vendors and wholesale distributors with validated GSTIN profiles and regional logistics parameters.',
-      icon: <Building className="h-6 w-6 text-emerald-500" />,
-      tag: 'ACTIVE PLATFORM',
+      title: 'Verified Trade Directory',
+      desc: 'Connect directly with wholesale distributors with verified 15-character GSTIN profiles and regional logistics parameters.',
+      icon: <Building className="h-5 w-5 text-emerald-500" />,
+      tag: 'GST VERIFIED',
+      span: 'col-span-1 md:col-span-2 lg:col-span-2',
     },
     {
-      title: 'Zero-Latency Product Catalog',
-      desc: 'Explore real-time wholesale product pricing, tiered quantity discounts, live stock indicators, and SKU categorizations.',
-      icon: <Search className="h-6 w-6 text-emerald-500" />,
-      tag: 'INSTANT SYNC',
+      title: 'Zero-Latency Catalog Sync',
+      desc: 'Real-time inventory levels, tiered quantity pricing, and SKU reservations updated in milliseconds.',
+      icon: <Boxes className="h-5 w-5 text-emerald-500" />,
+      tag: 'LIVE INVENTORY',
+      span: 'col-span-1 md:col-span-1 lg:col-span-1',
     },
     {
-      title: 'Automated Purchase Orders',
-      desc: 'Dispatch structured purchase order requests instantly with line-item totals, delivery scheduling, and priority tagging.',
-      icon: <FileText className="h-6 w-6 text-emerald-500" />,
-      tag: 'PRECISION LOGISTICS',
+      title: 'Native WebSocket Push Engine',
+      desc: 'Instant dispatch alerts, order status transitions, and multi-tenant live push events.',
+      icon: <Zap className="h-5 w-5 text-indigo-500" />,
+      tag: 'WSS REAL-TIME',
+      span: 'col-span-1 md:col-span-1 lg:col-span-1',
     },
     {
-      title: 'Real-Time WebSocket Engine',
-      desc: 'Receive push notifications the instant suppliers review, modify quantities, accept, or dispatch pending orders.',
-      icon: <Zap className="h-6 w-6 text-indigo-500" />,
-      tag: 'LIVE STREAM',
+      title: 'Multi-Model Agentic AI Assistant',
+      desc: 'Ask operational questions about low stock, revenue, or pending purchase orders with zero hallucination and live tool execution telemetry.',
+      icon: <Sparkles className="h-5 w-5 text-emerald-500" />,
+      tag: 'GEMINI 3.6 / 3.5 AI',
+      span: 'col-span-1 md:col-span-2 lg:col-span-2',
     },
     {
-      title: 'Supply Chain Analytics',
-      desc: 'Track procurement velocity, spending trends, regional demand forecasts, and order fulfillment SLA metrics.',
-      icon: <TrendingUp className="h-6 w-6 text-cyan-500" />,
-      tag: 'INTELLIGENT INSIGHTS',
+      title: 'Automated Invoices & PDF Engine',
+      desc: 'High-precision GST tax computations, partial payment settlement tracking, and ReportLab PDF downloads.',
+      icon: <Receipt className="h-5 w-5 text-sky-500" />,
+      tag: 'FINANCIAL INTEGRITY',
+      span: 'col-span-1 md:col-span-2 lg:col-span-2',
     },
     {
-      title: 'Enterprise Security & Compliance',
-      desc: 'OAuth2 JWT token authentication, BCrypt password encryption, role-based access control, and full audit logging.',
-      icon: <ShieldCheck className="h-6 w-6 text-emerald-500" />,
-      tag: 'GST COMPLIANT',
-    },
-  ];
-
-  const steps = [
-    {
-      title: 'Configure Organization Profile',
-      desc: 'Register as a Vendor or Wholesale Supplier, setup company credentials, and link verified GSTIN parameters.',
-    },
-    {
-      title: 'Stage Products or Browse Catalogs',
-      desc: 'Suppliers list real-time inventory and pricing; vendors build multi-item procurement orders in the live cart.',
-    },
-    {
-      title: 'Instant Order Fulfillment',
-      desc: 'Suppliers receive push alerts, accept requests, schedule dispatches, and trigger real-time inventory sync.',
+      title: 'Enterprise Security & RBAC',
+      desc: 'OAuth2 JWT tokens, BCrypt password hashing, parameter-bound ORM queries, and immutable status audit trails.',
+      icon: <Lock className="h-5 w-5 text-emerald-500" />,
+      tag: 'SOC-2 READY',
+      span: 'col-span-1 md:col-span-1 lg:col-span-1',
     },
   ];
 
   const metrics = [
     { label: 'Fulfillment Accuracy', value: '99.98%' },
-    { label: 'Order Processing Speed', value: '< 2.4s' },
+    { label: 'WebSocket Push Latency', value: '< 180ms' },
     { label: 'Verified Trade Partners', value: '12,500+' },
     { label: 'Monthly Logistics Volume', value: '₹180Cr+' },
   ];
@@ -95,361 +90,199 @@ export const Landing: React.FC = () => {
   const faqs = [
     {
       id: 'faq-1',
-      title: 'What is Flowza?',
-      content: 'Flowza is an enterprise-grade B2B Supply Chain & Procurement Network designed to connect retail vendors directly with wholesale suppliers, eliminating manual paperwork, phone call delays, and inventory mismatch.',
+      title: 'What is Flowza and who is it built for?',
+      content: 'Flowza is a high-precision B2B Supply Chain & Procurement Network designed to connect retail vendors directly with wholesale suppliers, eliminating manual paperwork, telephone ordering delays, and inventory mismatch.',
     },
     {
       id: 'faq-2',
-      title: 'How does real-time order dispatch work?',
-      content: 'When a vendor submits a Purchase Order Request, Flowza’s WebSocket engine immediately pushes a high-priority payload to the supplier’s dashboard. Suppliers can accept, adjust quantities, or dispatch orders with instant feedback.',
+      title: 'How does real-time WebSocket order dispatch work?',
+      content: 'When a vendor places an order, Flowza’s native WebSocket engine instantly pushes a high-priority payload to the supplier’s dashboard. Suppliers accept, adjust quantities, and dispatch with instant live client updates.',
     },
     {
       id: 'faq-3',
       title: 'Is Flowza GST-compliant?',
-      content: 'Yes. Every company profile on Flowza includes validated 15-character GSTIN fields, verified business billing addresses, and tax-ready order breakdown statements.',
+      content: 'Yes. Every company profile on Flowza includes validated 15-character GSTIN fields, verified billing addresses, and tax-accurate GST invoices with ReportLab PDF export.',
     },
     {
       id: 'faq-4',
-      title: 'What security standards does Flowza enforce?',
-      content: 'We use OAuth2 Bearer Tokens (JWT) for session control, BCrypt password hashing, parameter-bound ORM queries against SQL injection, and strict Role-Based Access Control (RBAC).',
+      title: 'How does the Flowza AI Business Assistant work?',
+      content: 'Flowza integrates an Agentic AI Assistant powered by Google Gemini with multi-model fallback. The assistant runs database-backed tools to retrieve live inventory, sales, and invoice data with zero hallucinations.',
     },
   ];
-
-  const testimonials = [
-    {
-      name: 'Rajesh Malhotra',
-      company: 'Malhotra Mega Wholesalers',
-      avatar: 'RM',
-      quote: 'Flowza has completely eliminated order ambiguity. We receive instant order requests with itemized quantities directly in our incoming order desk.',
-    },
-    {
-      name: 'Kavita Reddy',
-      company: 'FreshMart Supermarkets',
-      avatar: 'KR',
-      quote: 'The speed of placing procurement requests from supplier catalogs is phenomenal. We get real-time status notifications as soon as orders are accepted.',
-    },
-    {
-      name: 'Suresh Patel',
-      company: 'Patel Agriculture & Foodtech',
-      avatar: 'SP',
-      quote: 'The modern interface and instant stock updates have allowed us to scale distribution to over 40 regional vendors without hiring extra admin staff.',
-    },
-  ];
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } },
-  };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-[#FAFAFA] dark:bg-[#08090A] text-slate-900 dark:text-slate-100 selection:bg-emerald-500/20 selection:text-emerald-900 dark:selection:text-emerald-200">
+      {/* Navigation */}
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden bg-gradient-to-b from-emerald-500/5 via-transparent to-transparent">
-        {/* Ambient Grid Overlay */}
-        <div className="absolute inset-0 mesh-grid-bg [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+      <section className="relative pt-32 md:pt-44 pb-16 md:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
+        {/* Subtle Ambient Background Grids */}
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center"
-          >
-            {/* Hero Left Content */}
-            <motion.div variants={itemVariants} className="lg:col-span-7 text-left space-y-6">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold glass-panel border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
-                <Sparkles size={14} className="text-emerald-500 animate-pulse" />
-                <span className="font-mono tracking-tight font-bold">NEXT-GEN B2B LOGISTICS PLATFORM</span>
-              </div>
-
-              <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.1]">
-                Precision B2B Supply Chain & <span className="shimmer-text">Automated Procurement.</span>
-              </h1>
-
-              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-xl leading-relaxed">
-                Connect enterprise vendors directly with wholesale suppliers. Zero manual friction, real-time inventory synchronization, and verified GST trade logistics.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Link to="/register">
-                  <Button variant="primary" size="xl" glow className="w-full sm:w-auto font-heading">
-                    Start Platform Setup Free
-                    <ArrowRight size={18} />
-                  </Button>
-                </Link>
-                <a href="#how-it-works">
-                  <Button variant="glass" size="xl" className="w-full sm:w-auto font-heading">
-                    Explore Logistics Engine
-                  </Button>
-                </a>
-              </div>
-
-              {/* Interactive Role Switcher Bar */}
-              <div className="pt-6">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest font-heading mb-3">Live Interactive Platform Simulation</p>
-                <div className="inline-flex p-1.5 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 gap-1">
-                  <button
-                    onClick={() => setActiveRole('vendor')}
-                    className={`relative px-4 py-2 rounded-xl text-xs font-semibold font-heading transition-colors cursor-pointer ${
-                      activeRole === 'vendor' ? 'text-white' : 'text-slate-500 dark:text-slate-400'
-                    }`}
-                  >
-                    {activeRole === 'vendor' && (
-                      <motion.div
-                        layoutId="activeRoleTab"
-                        className="absolute inset-0 bg-emerald-600 rounded-xl shadow-md"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-1.5">
-                      <Store size={14} /> Vendor View
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveRole('supplier')}
-                    className={`relative px-4 py-2 rounded-xl text-xs font-semibold font-heading transition-colors cursor-pointer ${
-                      activeRole === 'supplier' ? 'text-white' : 'text-slate-500 dark:text-slate-400'
-                    }`}
-                  >
-                    {activeRole === 'supplier' && (
-                      <motion.div
-                        layoutId="activeRoleTab"
-                        className="absolute inset-0 bg-indigo-600 rounded-xl shadow-md"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-1.5">
-                      <Truck size={14} /> Wholesale Supplier View
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveRole('admin')}
-                    className={`relative px-4 py-2 rounded-xl text-xs font-semibold font-heading transition-colors cursor-pointer ${
-                      activeRole === 'admin' ? 'text-white' : 'text-slate-500 dark:text-slate-400'
-                    }`}
-                  >
-                    {activeRole === 'admin' && (
-                      <motion.div
-                        layoutId="activeRoleTab"
-                        className="absolute inset-0 bg-slate-800 rounded-xl shadow-md"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-1.5">
-                      <Cpu size={14} /> System Engine Telemetry
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Interactive Morphing Hero Preview Card */}
-            <motion.div variants={itemVariants} className="lg:col-span-5 relative">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeRole}
-                  initial={{ opacity: 0, scale: 0.96, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.96, y: -10 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  className="relative mx-auto max-w-md glass-panel rounded-3xl p-6 shadow-2xl border border-white/20 dark:border-white/10 glow-emerald"
-                >
-                  <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-4 mb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-3 w-3 rounded-full bg-red-500" />
-                      <div className="h-3 w-3 rounded-full bg-amber-500" />
-                      <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                    </div>
-                    <Badge variant={activeRole === 'vendor' ? 'emerald' : activeRole === 'supplier' ? 'indigo' : 'cyan'} ping>
-                      {activeRole === 'vendor' ? 'VENDOR DASHBOARD' : activeRole === 'supplier' ? 'SUPPLIER DESK' : 'ADMIN ENGINE'}
-                    </Badge>
-                  </div>
-
-                  {/* Simulated Content based on activeRole */}
-                  {activeRole === 'vendor' && (
-                    <div className="space-y-4">
-                      <div className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 space-y-3">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-mono text-slate-400">PO #FLW-9482</span>
-                          <Badge variant="emerald" dot>SUBMITTED</Badge>
-                        </div>
-                        <div>
-                          <h4 className="font-heading text-sm font-bold text-slate-900 dark:text-white">
-                            25x Organic Rice (25kg Bags)
-                          </h4>
-                          <p className="text-xs text-slate-500 font-mono">Target Supplier: GreenEarth Wholesale</p>
-                        </div>
-                        <div className="flex items-center justify-between text-xs font-mono pt-2 border-t border-slate-100 dark:border-slate-800">
-                          <span className="text-slate-400">Order Budget</span>
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">₹18,500.00</span>
-                        </div>
-                      </div>
-
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() => setSimStep((prev) => (prev % 3) + 1)}
-                        className="w-full text-xs font-heading font-semibold"
-                      >
-                        Simulate Next Pipeline Stage (Step {simStep}/3)
-                      </Button>
-                    </div>
-                  )}
-
-                  {activeRole === 'supplier' && (
-                    <div className="space-y-4">
-                      <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 space-y-3">
-                        <div className="flex items-center justify-between text-xs font-mono text-indigo-400 font-bold">
-                          <span>INCOMING PO REQUEST</span>
-                          <Badge variant="indigo" ping>NEW ALERT</Badge>
-                        </div>
-                        <h4 className="font-heading text-sm font-bold text-slate-900 dark:text-white">
-                          FreshMart Supermarkets (Order #PO-8821)
-                        </h4>
-                        <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                          <span>Items: 50x Sunflower Oil 5L</span>
-                          <span className="font-bold text-indigo-400">₹24,000</span>
-                        </div>
-                        <div className="flex gap-2 pt-2">
-                          <Button size="sm" variant="primary" className="w-full text-xs">Accept PO</Button>
-                          <Button size="sm" variant="outline" className="w-full text-xs">Review</Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeRole === 'admin' && (
-                    <div className="space-y-4 font-mono text-xs">
-                      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
-                        <div className="flex justify-between text-emerald-400 font-bold">
-                          <span>SYSTEM STATUS</span>
-                          <span>100% OPERATIONAL</span>
-                        </div>
-                        <div className="space-y-1 text-slate-400 text-[11px]">
-                          <p>• FastAPI Core latency: 0.4ms</p>
-                          <p>• WebSocket Clients: 1,420 connected</p>
-                          <p>• GST Verification Engine: Active</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Metrics Banner */}
-      <section className="py-12 border-y border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-            {metrics.map((m, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-                viewport={{ once: true }}
-                className="space-y-1"
-              >
-                <div className="text-3xl lg:text-4xl font-extrabold font-mono shimmer-text">
-                  {m.value}
-                </div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-heading">
-                  {m.label}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Capabilities Section */}
-      <section id="features" className="py-24 relative bg-slate-50 dark:bg-slate-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
-            <Badge variant="indigo" className="uppercase">Platform Architecture</Badge>
-            <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Engineered for Enterprise Supply Chains
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Everything required to modernize wholesale ordering, eliminate inventory leaks, and ensure trade compliance.
-            </p>
+        <div className="text-center space-y-6 max-w-4xl mx-auto">
+          {/* Eyebrow Pill */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-mono font-medium tracking-wide uppercase bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 shadow-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Precision B2B Supply Chain Network</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feat, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                whileHover={{ y: -6, scale: 1.02 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                viewport={{ once: true }}
-                className="glass-card p-6 rounded-2xl flex flex-col justify-between spotlight-card cursor-pointer group"
-              >
+          {/* Massive Display Heading */}
+          <h1 className="font-heading text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.08]">
+            Wholesale Procurement, <br className="hidden sm:inline" />
+            <span className="text-emerald-600 dark:text-emerald-400">Zero Latency.</span>
+          </h1>
+
+          {/* High-Contrast Subtitle */}
+          <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
+            Connect verified retail vendors directly with wholesale suppliers. Live inventory sync, automated purchase orders, and AI-powered operations.
+          </p>
+
+          {/* Action CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4">
+            <Button
+              size="lg"
+              variant="primary"
+              trailingIcon={<ArrowRight size={16} />}
+              iconCircle={true}
+              onClick={() => navigate('/register')}
+              className="w-full sm:w-auto text-base font-semibold"
+            >
+              Get Started Free
+            </Button>
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={() => navigate('/login')}
+              className="w-full sm:w-auto text-base"
+            >
+              Launch Live Demo
+            </Button>
+          </div>
+
+          {/* Trust Badges */}
+          <div className="pt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500 dark:text-slate-400 font-mono">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck size={14} className="text-emerald-500" />
+              <span>GSTIN Verified Trade</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Zap size={14} className="text-indigo-500" />
+              <span>Instant WebSocket Push</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Sparkles size={14} className="text-emerald-500" />
+              <span>Agentic AI Copilot</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Live Interactive Supply Chain Simulator */}
+        <div id="simulator" className="mt-16 md:mt-24">
+          <div className="double-bezel max-w-5xl mx-auto">
+            <div className="double-bezel-inner p-6 md:p-8">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800/80">
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 group-hover:scale-110 transition-transform">
-                      {feat.icon}
-                    </div>
-                    <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
-                      {feat.tag}
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    <h2 className="font-heading text-lg md:text-xl font-bold text-slate-900 dark:text-white">
+                      Live Trade Lifecycle Simulator
+                    </h2>
                   </div>
-                  <h3 className="font-heading text-lg font-bold text-slate-900 dark:text-white mb-2">
-                    {feat.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
-                    {feat.desc}
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Experience how a single purchase order flows seamlessly between Vendor and Supplier in real time.
                   </p>
                 </div>
-              </motion.div>
-            ))}
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4].map((step) => (
+                    <button
+                      key={step}
+                      onClick={() => setSimStep(step)}
+                      className={`h-8 px-3 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                        simStep === step
+                          ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950 font-bold'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                      }`}
+                    >
+                      Step 0{step}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Simulator Stage Content */}
+              <div className="py-8 grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                {/* Vendor Side */}
+                <div className={`p-5 rounded-2xl border transition-all ${simStep >= 1 ? 'border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-mono font-semibold uppercase text-emerald-600 dark:text-emerald-400">1. Retail Vendor</span>
+                    <Store size={18} className="text-slate-600 dark:text-slate-300" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Fresh Mart Supermarket</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">PO: ORD-2026-893B19</p>
+                  <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex justify-between text-xs font-mono">
+                    <span>Items: 40 Bags Rice</span>
+                    <span className="font-bold text-slate-900 dark:text-white">₹4,800.00</span>
+                  </div>
+                </div>
+
+                {/* WebSocket Push Stream */}
+                <div className="text-center space-y-2">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 mx-auto">
+                    <Zap size={20} className={simStep === 2 ? 'animate-bounce' : ''} />
+                  </div>
+                  <p className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300">
+                    {simStep === 1 && '1. Vendor places order in live cart'}
+                    {simStep === 2 && '2. WebSocket pushes alert to Supplier (<180ms)'}
+                    {simStep === 3 && '3. Supplier accepts & reserves stock'}
+                    {simStep === 4 && '4. Order fulfilled & Invoice PDF ready'}
+                  </p>
+                  <span className="inline-block text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                    State: <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase">{simStep === 1 ? 'Pending' : simStep === 2 ? 'Dispatched' : simStep === 3 ? 'Accepted' : 'Completed'}</span>
+                  </span>
+                </div>
+
+                {/* Supplier Side */}
+                <div className={`p-5 rounded-2xl border transition-all ${simStep >= 3 ? 'border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-mono font-semibold uppercase text-emerald-600 dark:text-emerald-400">2. Wholesale Supplier</span>
+                    <Truck size={18} className="text-slate-600 dark:text-slate-300" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Apex FMCG Wholesale Ltd</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">GSTIN: 33AABCU9603R1ZM</p>
+                  <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex justify-between text-xs font-mono">
+                    <span>Stock: -40 Units</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">Auto-Sync OK</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 text-xs">
+                <span className="text-slate-500 dark:text-slate-400">Step {simStep} of 4</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSimStep(simStep < 4 ? simStep + 1 : 1)}
+                >
+                  {simStep < 4 ? 'Next Step →' : 'Replay Simulation ↺'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-
-      {/* How Flowza Works */}
-      <section id="how-it-works" className="py-24 bg-white dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800">
+      {/* Metrics Strip */}
+      <section className="py-12 border-y border-slate-200/80 dark:border-slate-800/80 bg-slate-100/60 dark:bg-[#0A0C10]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
-            <Badge variant="cyan" className="uppercase">Logistics Pipeline</Badge>
-            <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Zero-Friction 3-Step Operations
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Transform legacy manual registers into a high-speed digital procurement cycle.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {steps.map((step, idx) => (
-              <div key={idx} className="glass-card p-8 rounded-2xl relative text-left space-y-4">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white font-extrabold font-mono flex items-center justify-center text-base shadow-md">
-                  0{idx + 1}
-                </div>
-                <h3 className="font-heading text-lg font-bold text-slate-900 dark:text-white">
-                  {step.title}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  {step.desc}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            {metrics.map((m, idx) => (
+              <div key={idx} className="space-y-1">
+                <p className="font-heading text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white font-mono-num">
+                  {m.value}
+                </p>
+                <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                  {m.label}
                 </p>
               </div>
             ))}
@@ -457,62 +290,198 @@ export const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-24 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
-            <Badge variant="emerald" className="uppercase">Customer Endorsements</Badge>
-            <h2 className="font-heading text-3xl font-extrabold text-slate-900 dark:text-white">
-              Trusted by Leading Supply Networks
-            </h2>
-          </div>
+      {/* Asymmetrical Bento Grid: Core Platform Features */}
+      <section id="features" className="py-20 md:py-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="space-y-4 max-w-2xl mb-12 md:mb-16">
+          <Badge variant="emerald" dot className="uppercase font-mono text-xs">
+            Architecture Matrix
+          </Badge>
+          <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Engineered for High-Frequency Trade.
+          </h2>
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400">
+            Every feature in Flowza is purpose-built to eliminate reconciliation friction, reduce stockouts, and automate procurement workflows.
+          </p>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((test, idx) => (
-              <div
-                key={idx}
-                className="glass-card p-6 rounded-2xl flex flex-col justify-between"
-              >
-                <p className="text-xs italic text-slate-600 dark:text-slate-300 leading-relaxed mb-6 font-sans">
-                  "{test.quote}"
-                </p>
-                <div className="flex items-center space-x-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center text-xs font-mono border border-emerald-500/20">
-                    {test.avatar}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+          {features.map((f, idx) => (
+            <div key={idx} className={`double-bezel ${f.span}`}>
+              <div className="double-bezel-inner p-6 md:p-8 h-full flex flex-col justify-between space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200/80 dark:border-slate-700/80">
+                      {f.icon}
+                    </div>
+                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300">
+                      {f.tag}
+                    </span>
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white font-heading">
-                      {test.name}
-                    </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                      {test.company}
+                    <h3 className="font-heading text-lg md:text-xl font-bold text-slate-900 dark:text-white">
+                      {f.title}
+                    </h3>
+                    <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
+                      {f.desc}
                     </p>
                   </div>
                 </div>
+
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-xs font-mono text-emerald-600 dark:text-emerald-400">
+                  <span>Engine Active</span>
+                  <ChevronRight size={14} />
+                </div>
               </div>
-            ))}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Role-Based Interactive Preview Strip */}
+      <section className="py-16 md:py-24 bg-slate-100/50 dark:bg-[#0B0D12] border-y border-slate-200/80 dark:border-slate-800/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-4 max-w-2xl mx-auto mb-10">
+            <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white">
+              Tailored Dashboards for Every Stakeholder
+            </h2>
+            <div className="inline-flex p-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => setActiveRole('vendor')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  activeRole === 'vendor'
+                    ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                Retail Vendor
+              </button>
+              <button
+                onClick={() => setActiveRole('supplier')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  activeRole === 'supplier'
+                    ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                Wholesale Supplier
+              </button>
+              <button
+                onClick={() => setActiveRole('admin')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  activeRole === 'admin'
+                    ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                Platform Admin
+              </button>
+            </div>
+          </div>
+
+          <div className="double-bezel max-w-4xl mx-auto">
+            <div className="double-bezel-inner p-6 md:p-8">
+              {activeRole === 'vendor' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="indigo" dot>VENDOR PROCUREMENT WORKSPACE</Badge>
+                    <span className="text-xs font-mono text-slate-500">Cart • Direct POs • Tax Invoices</span>
+                  </div>
+                  <h3 className="font-heading text-xl font-bold text-slate-900 dark:text-white">
+                    Build Multi-Supplier Orders and Track Live Deliveries
+                  </h3>
+                  <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Vendors can browse verified supplier catalogs, add items to supplier-isolated carts, submit structured purchase orders, and monitor real-time fulfillment status.
+                  </p>
+                </div>
+              )}
+
+              {activeRole === 'supplier' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="emerald" dot>SUPPLIER FULFILLMENT DESK</Badge>
+                    <span className="text-xs font-mono text-slate-500">Live Queue • Stock Sync • PDF Generator</span>
+                  </div>
+                  <h3 className="font-heading text-xl font-bold text-slate-900 dark:text-white">
+                    Accept Instant Orders, Manage Inventory & Issue Invoices
+                  </h3>
+                  <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Suppliers receive push notifications via WebSockets, accept or adjust quantities, maintain stock levels with reorder thresholds, and generate tax-compliant PDF invoices.
+                  </p>
+                </div>
+              )}
+
+              {activeRole === 'admin' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="destructive" dot>ENTERPRISE OVERSIGHT CONSOLE</Badge>
+                    <span className="text-xs font-mono text-slate-500">Platform Analytics • System Audit</span>
+                  </div>
+                  <h3 className="font-heading text-xl font-bold text-slate-900 dark:text-white">
+                    System-Wide Financial Health & Trade Volume Metrics
+                  </h3>
+                  <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Platform administrators monitor active organizations, total platform GMV, payment settlement velocities, and operational compliance audit trails across the entire network.
+                  </p>
+                </div>
+              )}
+
+              <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800/60 flex justify-end">
+                <Button size="sm" variant="primary" trailingIcon={<ArrowRight size={14} />} onClick={() => navigate('/login')}>
+                  Open {activeRole.toUpperCase()} Demo
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-24 bg-white dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-3 mb-12">
-            <h2 className="font-heading text-3xl font-extrabold text-slate-900 dark:text-white">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Clear technical answers regarding Flowza’s architecture and deployment options.
-            </p>
-          </div>
+      <section id="faqs" className="py-20 md:py-32 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+        <div className="text-center space-y-4 mb-12">
+          <Badge variant="neutral" className="uppercase font-mono text-xs">Knowledge Base</Badge>
+          <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
+            Frequently Asked Questions
+          </h2>
+        </div>
 
-          <Accordion items={faqs} />
+        <Accordion items={faqs} />
+      </section>
+
+      {/* Final Call to Action */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-24">
+        <div className="double-bezel">
+          <div className="double-bezel-inner p-8 md:p-16 text-center space-y-6 bg-gradient-to-b from-slate-900 to-slate-950 text-white">
+            <h2 className="font-heading text-3xl sm:text-5xl font-extrabold tracking-tight">
+              Ready to Upgrade Your Supply Chain?
+            </h2>
+            <p className="text-slate-400 text-sm md:text-base max-w-xl mx-auto font-normal">
+              Join thousands of verified vendors and wholesale suppliers on Flowza’s high-precision B2B trade network.
+            </p>
+            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+              <Button
+                size="lg"
+                variant="primary"
+                trailingIcon={<ArrowRight size={16} />}
+                iconCircle={true}
+                onClick={() => navigate('/register')}
+              >
+                Create Account Free
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => navigate('/login')}
+                className="text-white border-white/20 hover:bg-white/10"
+              >
+                Explore Live Demo
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
 
+      {/* Footer */}
       <Footer />
     </div>
   );
 };
-

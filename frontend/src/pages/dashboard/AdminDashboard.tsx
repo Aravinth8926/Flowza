@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { analyticsService } from '../../services/analyticsService';
 import { DateRangePreset } from '../../types';
@@ -26,9 +27,11 @@ import {
   AlertTriangle,
   AlertOctagon,
   Clock,
+  Sparkles,
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [preset, setPreset] = useState<DateRangePreset>('30d');
 
   const {
@@ -88,6 +91,14 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3 self-start sm:self-center">
+            <button
+              type="button"
+              onClick={() => navigate('/ai', { state: { initialPrompt: 'Give me a complete health check on platform trade volume, active suppliers, and unsettled balances.' } })}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Ask Flowza AI</span>
+            </button>
             <DateRangeFilter
               selectedPreset={preset}
               onSelectPreset={(newPreset) => setPreset(newPreset)}

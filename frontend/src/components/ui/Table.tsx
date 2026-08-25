@@ -1,13 +1,12 @@
 import React from 'react';
-import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto rounded-xl border border-slate-200 dark:border-[#1e293b]">
+    <div className="relative w-full overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#0E1015] shadow-sm">
       <table
         ref={ref}
-        className={twMerge('w-full caption-bottom text-xs border-collapse bg-white dark:bg-[#111827]', className)}
+        className={twMerge('w-full caption-bottom text-xs md:text-sm border-collapse', className)}
         {...props}
       />
     </div>
@@ -17,7 +16,11 @@ Table.displayName = 'Table';
 
 export const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
   ({ className, ...props }, ref) => (
-    <thead ref={ref} className={twMerge('border-b border-slate-200 dark:border-[#1e293b] bg-slate-50 dark:bg-[#151d2e]', className)} {...props} />
+    <thead
+      ref={ref}
+      className={twMerge('border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-900/80', className)}
+      {...props}
+    />
   )
 );
 TableHeader.displayName = 'TableHeader';
@@ -26,7 +29,7 @@ export const TableBody = React.forwardRef<HTMLTableSectionElement, React.HTMLAtt
   ({ className, ...props }, ref) => (
     <tbody
       ref={ref}
-      className={twMerge('[&_tr:last-child]:border-0', className)}
+      className={twMerge('[&_tr:last-child]:border-0 divide-y divide-slate-100 dark:divide-slate-800/60', className)}
       {...props}
     />
   )
@@ -37,7 +40,7 @@ export const TableFooter = React.forwardRef<HTMLTableSectionElement, React.HTMLA
   ({ className, ...props }, ref) => (
     <tfoot
       ref={ref}
-      className={twMerge('border-t border-slate-200 dark:border-[#1e293b] bg-slate-50 dark:bg-[#151d2e] font-medium [&>tr]:last:border-b-0', className)}
+      className={twMerge('border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 font-medium [&>tr]:last:border-b-0', className)}
       {...props}
     />
   )
@@ -49,7 +52,7 @@ export const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttribut
     <tr
       ref={ref}
       className={twMerge(
-        'border-b border-slate-100 dark:border-[#171f30] transition-colors hover:bg-slate-50/60 dark:hover:bg-[#172033]',
+        'transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/60',
         className
       )}
       {...props}
@@ -63,7 +66,7 @@ export const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttr
     <th
       ref={ref}
       className={twMerge(
-        'h-10 px-4 text-left align-middle font-semibold text-xxs uppercase tracking-wider text-slate-500 dark:text-[#64748b] [&:has([role=checkbox])]:pr-0',
+        'h-10 px-4 text-left align-middle font-semibold text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 [&:has([role=checkbox])]:pr-0 whitespace-nowrap',
         className
       )}
       {...props}
@@ -77,7 +80,7 @@ export const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttr
     <td
       ref={ref}
       className={twMerge(
-        'p-4 align-middle text-xs text-slate-800 dark:text-[#e2e8f0] [&:has([role=checkbox])]:pr-0',
+        'p-4 align-middle text-slate-800 dark:text-slate-200 [&:has([role=checkbox])]:pr-0 whitespace-nowrap',
         className
       )}
       {...props}
@@ -90,7 +93,7 @@ export const TableCaption = React.forwardRef<HTMLTableCaptionElement, React.HTML
   ({ className, ...props }, ref) => (
     <caption
       ref={ref}
-      className={twMerge('mt-4 text-xs text-slate-500 dark:text-[#64748b]', className)}
+      className={twMerge('mt-4 text-xs text-slate-500 dark:text-slate-400', className)}
       {...props}
     />
   )

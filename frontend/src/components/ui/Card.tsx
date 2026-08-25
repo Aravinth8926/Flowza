@@ -1,45 +1,52 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { twMerge } from 'tailwind-merge';
-import { motion, HTMLMotionProps } from 'framer-motion';
 
-export interface CardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, keyof HTMLMotionProps<'div'>>, HTMLMotionProps<'div'> {
-  spotlight?: boolean;
+export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: 'default' | 'double-bezel' | 'flat' | 'outline' | 'glass';
+  isInteractive?: boolean;
 }
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, spotlight = true, onMouseMove, ...props }, ref) => {
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  ({ className, variant = 'default', isInteractive = false, children, ...props }, ref) => {
+    if (variant === 'double-bezel') {
+      return (
+        <div
+          ref={ref}
+          className={twMerge(
+            'double-bezel transition-all duration-200',
+            isInteractive && 'hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer',
+            className
+          )}
+          {...props}
+        >
+          <div className="double-bezel-inner p-5 md:p-6 overflow-hidden">
+            {children}
+          </div>
+        </div>
+      );
+    }
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (spotlight) {
-        const rect = e.currentTarget.getBoundingClientRect();
-        setMousePos({
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
-        });
-      }
-      onMouseMove?.(e);
+    const variantStyles: Record<'default' | 'flat' | 'outline' | 'glass', string> = {
+      default:
+        'bg-white dark:bg-[#0E1015] border border-slate-200/80 dark:border-slate-800/80 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]',
+      flat: 'bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/60',
+      outline: 'bg-transparent border border-slate-200 dark:border-slate-800',
+      glass: 'glass-panel shadow-sm',
     };
 
     return (
-      <motion.div
+      <div
         ref={ref}
-        onMouseMove={handleMouseMove}
-        style={
-          spotlight
-            ? ({
-                '--mouse-x': `${mousePos.x}px`,
-                '--mouse-y': `${mousePos.y}px`,
-              } as React.CSSProperties)
-            : undefined
-        }
-        whileHover={{ y: -2, transition: { duration: 0.2 } }}
         className={twMerge(
-          'glass-card spotlight-card rounded-2xl p-0 transition-all duration-300 relative overflow-hidden',
+          'rounded-2xl transition-all duration-200 relative overflow-hidden',
+          variantStyles[variant as keyof typeof variantStyles] || variantStyles.default,
+          isInteractive && 'hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md cursor-pointer hover:-translate-y-0.5',
           className
         )}
         {...props}
-      />
+      >
+        {children}
+      </div>
     );
   }
 );
@@ -49,7 +56,7 @@ export const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={twMerge('flex flex-col space-y-1.5 p-6 relative z-10', className)}
+      className={twMerge('flex flex-col space-y-1.5 p-5 md:p-6 relative z-10', className)}
       {...props}
     />
   )
@@ -60,7 +67,7 @@ export const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttribut
   ({ className, ...props }, ref) => (
     <h3
       ref={ref}
-      className={twMerge('font-heading text-lg font-bold leading-snug tracking-tight text-slate-900 dark:text-slate-50', className)}
+      className={twMerge('font-heading text-lg md:text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100', className)}
       {...props}
     />
   )
@@ -71,7 +78,7 @@ export const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTML
   ({ className, ...props }, ref) => (
     <p
       ref={ref}
-      className={twMerge('text-xs text-slate-500 dark:text-slate-400 font-normal leading-relaxed', className)}
+      className={twMerge('text-xs md:text-sm text-slate-500 dark:text-slate-400 font-normal leading-relaxed', className)}
       {...props}
     />
   )
@@ -80,7 +87,7 @@ CardDescription.displayName = 'CardDescription';
 
 export const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={twMerge('p-6 pt-0 relative z-10', className)} {...props} />
+    <div ref={ref} className={twMerge('p-5 md:p-6 pt-0 relative z-10', className)} {...props} />
   )
 );
 CardContent.displayName = 'CardContent';
@@ -89,66 +96,9 @@ export const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={twMerge('flex items-center p-6 pt-3 border-t border-slate-100 dark:border-white/5 mt-2 text-xs text-slate-500 dark:text-slate-400 relative z-10', className)}
+      className={twMerge('flex items-center p-5 md:p-6 pt-0 relative z-10 border-t border-slate-100 dark:border-slate-800/60 mt-4', className)}
       {...props}
     />
   )
 );
 CardFooter.displayName = 'CardFooter';
-
-export interface StatCardProps extends CardProps {
-  title: string;
-  value: string | number;
-  change?: string;
-  isPositive?: boolean;
-  icon?: React.ReactNode;
-  badgeText?: string;
-}
-
-export const StatCard: React.FC<StatCardProps> = ({
-  title,
-  value,
-  change,
-  isPositive = true,
-  icon,
-  badgeText,
-  className,
-  ...props
-}) => (
-  <Card className={twMerge('p-6', className)} {...props}>
-    <div className="flex items-center justify-between mb-3 relative z-10">
-      <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-400 font-heading">
-        {title}
-      </span>
-      {icon && (
-        <div className="p-2.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-          {icon}
-        </div>
-      )}
-    </div>
-    <div className="flex items-baseline justify-between relative z-10">
-      <div className="text-2xl lg:text-3xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">
-        {value}
-      </div>
-      {change && (
-        <span
-          className={twMerge(
-            'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold font-mono',
-            isPositive
-              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
-              : 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 border border-red-500/30'
-          )}
-        >
-          {isPositive ? '↑' : '↓'} {change}
-        </span>
-      )}
-    </div>
-    {badgeText && (
-      <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 font-medium relative z-10">
-        {badgeText}
-      </div>
-    )}
-  </Card>
-);
-
-

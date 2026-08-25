@@ -45,13 +45,13 @@ def upgrade() -> None:
     # 4. order_requests
     with op.batch_alter_table('order_requests', schema=None) as batch_op:
         batch_op.alter_column('vendor_company_id',
-               existing_type=sa.CHAR(length=32),
+               existing_type=sa.Uuid(),
                nullable=False)
         batch_op.alter_column('supplier_company_id',
-               existing_type=sa.CHAR(length=32),
+               existing_type=sa.Uuid(),
                nullable=False)
         batch_op.alter_column('created_by_user_id',
-               existing_type=sa.CHAR(length=32),
+               existing_type=sa.Uuid(),
                nullable=False)
         batch_op.drop_column('supplier_id')
         batch_op.drop_column('vendor_id')
@@ -82,16 +82,16 @@ def downgrade() -> None:
 
     # 4. order_requests
     with op.batch_alter_table('order_requests', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('vendor_id', sa.CHAR(length=32), nullable=True))
-        batch_op.add_column(sa.Column('supplier_id', sa.CHAR(length=32), nullable=True))
+        batch_op.add_column(sa.Column('vendor_id', sa.Uuid(), nullable=True))
+        batch_op.add_column(sa.Column('supplier_id', sa.Uuid(), nullable=True))
         batch_op.alter_column('created_by_user_id',
-               existing_type=sa.CHAR(length=32),
+               existing_type=sa.Uuid(),
                nullable=True)
         batch_op.alter_column('supplier_company_id',
-               existing_type=sa.CHAR(length=32),
+               existing_type=sa.Uuid(),
                nullable=True)
         batch_op.alter_column('vendor_company_id',
-               existing_type=sa.CHAR(length=32),
+               existing_type=sa.Uuid(),
                nullable=True)
 
     # 3. inventories

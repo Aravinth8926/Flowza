@@ -38,14 +38,19 @@ from app.models import (
 
 target_metadata = Base.metadata
 
-# Read from settings environment variable dynamically if not set
+# Always override sqlalchemy.url from application environment settings
 from app.core.config import settings
-if not config.get_main_option("sqlalchemy.url"):
-    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
     url = config.get_main_option("sqlalchemy.url")
+    if url.startswith("sqlite+aiosqlite:"):
+        url = url.replace("sqlite+aiosqlite:", "sqlite:")
+    elif url.startswith("postgresql+asyncpg:"):
+        url = url.replace("postgresql+asyncpg:", "postgresql:")
+
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -56,24 +61,43 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
+
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        compare_type=True,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
 
+
 async def run_migrations_online() -> None:
-    """Run migrations in 'online' mode."""
+    """Run migrations in 'online' mode with async engine."""
+    connect_args = {}
+    if "asyncpg" in settings.DATABASE_URL:
+        connect_args = {
+            "statement_cache_size": 0,
+            "prepared_statement_cache_size": 0,
+        }
+    elif "sqlite" in settings.DATABASE_URL:
+        connect_args = {"check_same_thread": False}
+
+    configuration = config.get_section(config.config_ini_section, {})
+    
     connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

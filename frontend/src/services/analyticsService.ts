@@ -15,19 +15,19 @@ export interface DateFilterQuery {
 export const analyticsService = {
   // Supplier overview
   getSupplierOverview: async (params?: DateFilterQuery): Promise<SupplierOverviewResponse> => {
-    const res = await api.get('/analytics/supplier/overview', { params });
+    const res = await api.get('/api/v1/analytics/supplier/overview', { params });
     return res.data.data;
   },
 
   // Vendor overview
   getVendorOverview: async (params?: DateFilterQuery): Promise<VendorOverviewResponse> => {
-    const res = await api.get('/analytics/vendor/overview', { params });
+    const res = await api.get('/api/v1/analytics/vendor/overview', { params });
     return res.data.data;
   },
 
   // Admin overview
   getAdminOverview: async (params?: DateFilterQuery): Promise<AdminOverviewResponse> => {
-    const res = await api.get('/analytics/admin/overview', { params });
+    const res = await api.get('/api/v1/analytics/admin/overview', { params });
     return res.data.data;
   },
 };

@@ -1,11 +1,12 @@
 import asyncio
 import httpx
+from httpx import ASGITransport, AsyncClient
 import uuid
-
-BASE_URL = "http://127.0.0.1:8000"
+from app.main import app
 
 async def test_product_catalog():
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test", timeout=30.0) as client:
         print("[TEST] Logging in users...")
         
         # Unique suffix for SKUs to avoid unique constraint violations on re-runs

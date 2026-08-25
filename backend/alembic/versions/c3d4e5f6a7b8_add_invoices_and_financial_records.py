@@ -49,7 +49,7 @@ def upgrade() -> None:
         sa.Column('vendor_company_name', sa.String(length=200), nullable=False),
         sa.Column('vendor_gst_number', sa.String(length=20), nullable=True),
         sa.Column('vendor_address', sa.Text(), nullable=True),
-        sa.Column('is_deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False),
+        sa.Column('is_deleted', sa.Boolean(), server_default=sa.text('false'), nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
         sa.ForeignKeyConstraint(['created_by_user_id'], ['users.id'], ),

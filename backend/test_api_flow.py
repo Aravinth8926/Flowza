@@ -1,13 +1,15 @@
 import asyncio
+import os
 import json
 import httpx
 import websockets
 
-BASE_URL = "http://127.0.0.1:8000"
-WS_URL = "ws://127.0.0.1:8000"
+PORT = os.environ.get("PORT", "8001")
+BASE_URL = os.environ.get("BASE_URL", f"http://127.0.0.1:{PORT}")
+WS_URL = os.environ.get("WS_URL", f"ws://127.0.0.1:{PORT}")
 
 async def test_end_to_end():
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=10.0) as client:
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=25.0) as client:
         print("[TEST] 1. Logging in as Supplier (abc@distributors.com)...")
         sup_login_res = await client.post("/api/v1/auth/login", json={
             "email": "abc@distributors.com",
@@ -63,10 +65,10 @@ async def test_end_to_end():
 
             print("[TEST] 6. Supplier fetching incoming orders list...")
             inc_res = await client.get("/api/v1/orders/incoming", headers={"Authorization": f"Bearer {sup_token}"})
-            assert inc_res.status_code == 200
+            assert inc_res.status_code == 200, f"Incoming orders failed: {inc_res.status_code} - {inc_res.text}"
             inc_orders = inc_res.json()["data"]["orders"]
             found_order = next((o for o in inc_orders if o["raw_id"] == order_id), None)
-            assert found_order is not None, "Created order not found in incoming list"
+            assert found_order is not None, f"Created order {order_id} not found in incoming list {inc_orders}"
             assert found_order["status"] == "pending"
             print(f"[TEST] Verified order in incoming list: status={found_order['status']}, items={found_order['item_count']}")
 
@@ -81,7 +83,7 @@ async def test_end_to_end():
                 "action": "accept",
                 "response_note": "Confirmed. Will dispatch by 14th morning."
             }, headers={"Authorization": f"Bearer {sup_token}"})
-            assert respond_res.status_code == 200
+            assert respond_res.status_code == 200, f"Respond to order failed: {respond_res.status_code} - {respond_res.text}"
             print(f"[TEST] Order accepted: {respond_res.json()['message']}")
 
             print("[TEST] 9. Checking order details endpoint...")

@@ -92,13 +92,20 @@ def format_order_response(o: OrderRequest, vendor_user: Optional[User], supplier
     timeline = []
     if hasattr(o, "status_history") and o.status_history:
         for h in o.status_history:
-            changed_user = h.changed_by_user if hasattr(h, "changed_by_user") else None
+            changed_user = getattr(h, "changed_by_user", None)
+            role_name = "user"
+            if changed_user:
+                try:
+                    if hasattr(changed_user, "role") and changed_user.role:
+                        role_name = changed_user.role.name
+                except Exception:
+                    role_name = "user"
             timeline.append({
                 "id": str(h.id),
                 "from_status": h.from_status,
                 "to_status": h.to_status,
                 "changed_by": changed_user.full_name if changed_user else "System User",
-                "changed_by_role": changed_user.role.name if (changed_user and changed_user.role) else "user",
+                "changed_by_role": role_name,
                 "note": h.note,
                 "timestamp": h.created_at.isoformat() if h.created_at else None,
             })
@@ -307,7 +314,7 @@ async def get_incoming_orders(
         select(OrderRequest)
         .options(
             selectinload(OrderRequest.items),
-            selectinload(OrderRequest.status_history).selectinload(OrderStatusHistory.changed_by_user),
+            selectinload(OrderRequest.status_history).selectinload(OrderStatusHistory.changed_by_user).selectinload(User.role),
             selectinload(OrderRequest.vendor_company).selectinload(Company.addresses),
             selectinload(OrderRequest.supplier_company).selectinload(Company.addresses),
         )
@@ -382,7 +389,7 @@ async def get_my_sent_orders(
         select(OrderRequest)
         .options(
             selectinload(OrderRequest.items),
-            selectinload(OrderRequest.status_history).selectinload(OrderStatusHistory.changed_by_user),
+            selectinload(OrderRequest.status_history).selectinload(OrderStatusHistory.changed_by_user).selectinload(User.role),
             selectinload(OrderRequest.vendor_company).selectinload(Company.addresses),
             selectinload(OrderRequest.supplier_company).selectinload(Company.addresses),
         )
